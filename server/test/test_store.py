@@ -36,8 +36,8 @@ def test_connect_returns_row_objects(tmp_path):
 
 FIXTURE_CATEGORIES = [("Groceries", "expense"), ("Salary", "income")]
 FIXTURE_TREATMENTS = {
-    "Groceries": ("variable", "cash"),
-    "Salary": ("income", "cash"),
+    "Groceries": ("variable", "settlement"),
+    "Salary": ("variable", "settlement"),
 }
 FIXTURE_ACCOUNTS = [("Checking", "bank"), ("Visa", "credit_card")]
 
@@ -75,9 +75,9 @@ def test_seed_reference_data_skips_treatments_when_columns_absent(tmp_path):
     store.migrate(con, MIGRATIONS)
 
     columns = {r["name"] for r in con.execute("PRAGMA table_info(categories)")}
-    assert "budget_treatment" not in columns  # baseline schema has no treatment columns yet
+    assert "budget_treatment" in columns  # 002_budget migration adds treatment columns
 
-    # Must not raise even though the treatment columns don't exist.
+    # Verify that categories are inserted and treatments are applied.
     store.seed_reference_data(con, FIXTURE_CATEGORIES, FIXTURE_TREATMENTS, FIXTURE_ACCOUNTS)
 
     category_names = {r["name"] for r in con.execute("SELECT name FROM categories")}
@@ -87,18 +87,17 @@ def test_seed_reference_data_skips_treatments_when_columns_absent(tmp_path):
 def test_seed_reference_data_applies_treatments_when_columns_present(tmp_path):
     con = store.connect(tmp_path / "t.db")
     store.migrate(con, MIGRATIONS)
-    con.execute("ALTER TABLE categories ADD COLUMN budget_treatment TEXT")
-    con.execute("ALTER TABLE categories ADD COLUMN cash_treatment TEXT")
+    # 002_budget migration already adds treatment columns
 
     store.seed_reference_data(con, FIXTURE_CATEGORIES, FIXTURE_TREATMENTS, FIXTURE_ACCOUNTS)
 
     row = con.execute(
         "SELECT budget_treatment, cash_treatment FROM categories WHERE name = 'Groceries'"
     ).fetchone()
-    assert (row["budget_treatment"], row["cash_treatment"]) == ("variable", "cash")
+    assert (row["budget_treatment"], row["cash_treatment"]) == ("variable", "settlement")
 
     # Re-running repairs a row whose treatment has drifted.
-    con.execute("UPDATE categories SET budget_treatment = 'stale' WHERE name = 'Groceries'")
+    con.execute("UPDATE categories SET budget_treatment = 'exceptional' WHERE name = 'Groceries'")
     store.seed_reference_data(con, FIXTURE_CATEGORIES, FIXTURE_TREATMENTS, FIXTURE_ACCOUNTS)
     repaired = con.execute(
         "SELECT budget_treatment FROM categories WHERE name = 'Groceries'"
