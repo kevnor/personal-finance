@@ -3,8 +3,11 @@ from __future__ import annotations
 
 import datetime
 import sqlite3
-from collections.abc import Iterable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 from pathlib import Path
+
+from server.lib.ingest.dnb_xlsx import RawRow
+from server.lib.ingest.fingerprint import with_identity
 
 
 def connect(path: str | Path) -> sqlite3.Connection:
@@ -65,3 +68,49 @@ def seed_reference_data(
             [(budget, cash, name) for name, (budget, cash) in treatments.items()])
 
     con.commit()
+
+
+def upsert_transactions(
+    con: sqlite3.Connection,
+    rows: Iterable[RawRow],
+    account_id: int,
+    account_name: str,
+    batch_id: int,
+    categoriser: Callable[[str], "object"],
+) -> tuple[int, int]:
+    """Insert rows that are not already present. Additive and idempotent.
+
+    Returns (inserted, skipped_existing).
+    """
+    kinds = {r["name"]: r["kind"]
+             for r in con.execute("SELECT name, kind FROM categories")}
+    ids = {r["name"]: r["id"]
+           for r in con.execute("SELECT id, name FROM categories")}
+
+    inserted = skipped = 0
+    for row, fp, occurrence in with_identity(list(rows), account_name):
+        exists = con.execute(
+            "SELECT 1 FROM transactions"
+            " WHERE account_id = ? AND fingerprint = ? AND occurrence = ?"
+            "   AND is_derived = 0",
+            (account_id, fp, occurrence)).fetchone()
+        if exists:
+            skipped += 1
+            continue
+
+        verdict = categoriser(row.description)
+        con.execute(
+            "INSERT INTO transactions"
+            " (date, account_id, description, amount, category_id,"
+            "  is_transfer, needs_review, batch_id, source_row,"
+            "  fingerprint, occurrence, origin)"
+            " VALUES (?,?,?,?,?,?,?,?,?,?,?,'import')",
+            (row.date, account_id, row.description, row.amount,
+             ids[verdict.category],
+             1 if kinds[verdict.category] == "transfer" else 0,
+             1 if verdict.needs_review else 0,
+             batch_id, row.source_row, fp, occurrence))
+        inserted += 1
+
+    con.commit()
+    return inserted, skipped
