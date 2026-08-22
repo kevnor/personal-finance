@@ -71,13 +71,21 @@ def test_seed_reference_data_is_idempotent(tmp_path):
 
 
 def test_seed_reference_data_skips_treatments_when_columns_absent(tmp_path):
+    # Test that seed_reference_data gracefully handles schema without treatment columns.
+    # Create a migrations directory containing only 001_baseline.sql (001 applied, 002 not).
+    baseline_migrations = tmp_path / "baseline_migrations"
+    baseline_migrations.mkdir()
+    (baseline_migrations / "001_baseline.sql").write_text(
+        (MIGRATIONS / "001_baseline.sql").read_text(encoding="utf-8"),
+        encoding="utf-8")
+
     con = store.connect(tmp_path / "t.db")
-    store.migrate(con, MIGRATIONS)
+    store.migrate(con, baseline_migrations)
 
     columns = {r["name"] for r in con.execute("PRAGMA table_info(categories)")}
-    assert "budget_treatment" in columns  # 002_budget migration adds treatment columns
+    assert "budget_treatment" not in columns  # baseline schema has no treatment columns yet
 
-    # Verify that categories are inserted and treatments are applied.
+    # Must not raise even though the treatment columns don't exist.
     store.seed_reference_data(con, FIXTURE_CATEGORIES, FIXTURE_TREATMENTS, FIXTURE_ACCOUNTS)
 
     category_names = {r["name"] for r in con.execute("SELECT name FROM categories")}
