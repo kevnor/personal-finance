@@ -1,0 +1,182 @@
+id,date,account,description,amount,category,category_kind,is_transfer,needs_review,counterparty,source_file,source_row
+124,2026-06-10,Kredittkort,"IBSEN TANNKLINIKK/ TAN, OSLO",-1350.0,Health - dental,expense,0,0,,transaksjonsliste(1).xlsx,3
+125,2026-06-10,Kredittkort,"Vipps*Sumo Solli Plass, Oslo",-269.0,Restaurants & takeaway,expense,0,0,Sumo Solli Plass,transaksjonsliste(1).xlsx,4
+126,2026-06-11,Kredittkort,Innbetaling,2156.0,Credit card payment,transfer,1,0,,transaksjonsliste(1).xlsx,5
+127,2026-06-11,Kredittkort,Innbetaling,1350.0,Credit card payment,transfer,1,0,,transaksjonsliste(1).xlsx,6
+128,2026-06-11,Kredittkort,Innbetaling,797.0,Credit card payment,transfer,1,0,,transaksjonsliste(1).xlsx,7
+129,2026-06-14,Kredittkort,"BOLT.EU/O/9010000000, Tallinn, EST",-375.0,Taxi & ride-hailing,expense,0,0,,transaksjonsliste(1).xlsx,8
+130,2026-06-15,Kredittkort,"Vipps*Bjarte Lunde Sk, Oslo",-350.0,Vipps P2P - unspecified,expense,0,1,Bjarte Lunde Sk,transaksjonsliste(1).xlsx,9
+131,2026-06-17,Kredittkort,"Vipps*Anders Vestli B, Oslo",-270.0,Vipps P2P - unspecified,expense,0,1,Anders Vestli B,transaksjonsliste(1).xlsx,10
+132,2026-06-17,Kredittkort,"KID 47147 STORO, Oslo",-305.9,Home & furniture,expense,0,0,,transaksjonsliste(1).xlsx,11
+133,2026-06-28,Kredittkort,"Vipps*VY App, Oslo",-658.0,Public transport,expense,0,0,VY App,transaksjonsliste(1).xlsx,12
+134,2026-06-29,Kredittkort,"KONDOMERIET AS, Oslo",-359.0,Personal care,expense,0,0,,transaksjonsliste(1).xlsx,13
+135,2026-06-29,Kredittkort,Innbetaling,5433.54,Credit card payment,transfer,1,0,,transaksjonsliste(1).xlsx,14
+136,2026-06-29,Kredittkort,"REMA 1000 LORENVEIEN, OSLO",-99.32,Groceries,expense,0,0,,transaksjonsliste(1).xlsx,15
+137,2026-06-29,Kredittkort,"SPORT OUTLET KA, Oslo",-2113.0,Sports & outdoor,expense,0,0,,transaksjonsliste(1).xlsx,16
+1,2026-06-30,Bankkonto,Overføring  90200000000 Ingvild Kvamme Berg Tpp: Vipps,190.0,Vipps P2P - unspecified,expense,0,1,Ingvild Kvamme Berg Tpp,Kontoutskrift.xlsx,2
+138,2026-06-30,Kredittkort,"PROUD MARY OSLO, Oslo",-238.0,Cafe & bakery,expense,0,0,,transaksjonsliste(1).xlsx,17
+139,2026-06-30,Kredittkort,"PROUD MARY OSLO, Oslo",-119.0,Cafe & bakery,expense,0,0,,transaksjonsliste(1).xlsx,18
+140,2026-06-30,Kredittkort,"PROUD MARY OSLO, Oslo",-238.0,Cafe & bakery,expense,0,0,,transaksjonsliste(1).xlsx,19
+141,2026-06-30,Kredittkort,"Proud Mary Oslo, Kristiansand",-259.0,Cafe & bakery,expense,0,0,,transaksjonsliste(1).xlsx,20
+142,2026-06-30,Kredittkort,"PROUD MARY OSLO, Oslo",-119.0,Cafe & bakery,expense,0,0,,transaksjonsliste(1).xlsx,21
+143,2026-06-30,Kredittkort,"KEBAB BITEN AS, OSLO",-380.0,Restaurants & takeaway,expense,0,0,,transaksjonsliste(1).xlsx,22
+2,2026-07-01,Bankkonto,Overføring  90300000000 Ingvild Kvamme Berg Tpp: Vipps,102.0,Vipps P2P - unspecified,expense,0,1,Ingvild Kvamme Berg Tpp,Kontoutskrift.xlsx,3
+3,2026-07-01,Bankkonto,Overføring  9040000000 Sindre Aalborg LatteTpp: Vipps Mobilepay AS,-69.0,Cafe & bakery,expense,0,0,Sindre Aalborg LatteTpp,Kontoutskrift.xlsx,4
+4,2026-07-01,Bankkonto,Overføring  9050000000 Solveig Marte Vangen HumoretatenTpp: Vipps Mobilepay AS,-140.0,Entertainment,expense,0,0,Solveig Marte Vangen HumoretatenTpp,Kontoutskrift.xlsx,5
+5,2026-07-01,Bankkonto,Kontoregulering  237 Ukespenger,2200.0,Internal transfer,transfer,1,0,,Kontoutskrift.xlsx,6
+6,2026-07-01,Bankkonto,Varekjøp Deli De Luca Os Jernbanetorg Oslo Dato 01.07 kl. 14.53,-131.9,Convenience & kiosk,expense,0,0,,Kontoutskrift.xlsx,7
+7,2026-07-01,Bankkonto,Varekjøp Narvesen 417 In Jernbanetorg Oslo Dato 01.07 kl. 13.10,-40.9,Convenience & kiosk,expense,0,0,,Kontoutskrift.xlsx,8
+8,2026-07-01,Bankkonto,Varekjøp Tog Ga (a349) Tøyenbekken 0188 Osl Dato 01.07 kl. 17.32,-48.0,Public transport,expense,0,0,,Kontoutskrift.xlsx,9
+144,2026-07-01,Kredittkort,Innbetaling,1656.32,Credit card payment,transfer,1,0,,transaksjonsliste(1).xlsx,23
+145,2026-07-01,Kredittkort,Innbetaling,1080.0,Credit card payment,transfer,1,0,,transaksjonsliste(1).xlsx,24
+146,2026-07-01,Kredittkort,"AVD.47 BAKER NO, OSLO",-204.0,Cafe & bakery,expense,0,0,,transaksjonsliste(1).xlsx,25
+147,2026-07-01,Kredittkort,"Vipps*Eirik Tangen, Oslo",-270.0,Vipps P2P - unspecified,expense,0,1,Eirik Tangen,transaksjonsliste(1).xlsx,26
+148,2026-07-01,Kredittkort,"Vipps*Jonas Vestli B, Oslo",-270.0,Vipps P2P - unspecified,expense,0,1,Jonas Vestli B,transaksjonsliste(1).xlsx,27
+149,2026-07-01,Kredittkort,"Vipps*Trygve Solheim H, Oslo",-270.0,Vipps P2P - unspecified,expense,0,1,Trygve Solheim H,transaksjonsliste(1).xlsx,28
+150,2026-07-01,Kredittkort,"Vipps*Halvard Stene M, Oslo",-270.0,Vipps P2P - unspecified,expense,0,1,Halvard Stene M,transaksjonsliste(1).xlsx,29
+9,2026-07-02,Bankkonto,Overføring Bente Kathrine Berntzen MatRef:,700.0,Groceries,expense,0,0,,Kontoutskrift.xlsx,10
+10,2026-07-02,Bankkonto,Varekjøp Extra Drangedal Lauvåsen 1 Drangeda Dato 02.07 kl. 15.47,-700.8,Groceries,expense,0,0,,Kontoutskrift.xlsx,11
+11,2026-07-02,Bankkonto,Visa  100021  Www Coop No Medlem,-300.0,Memberships,expense,0,0,Www Coop No Medlem,Kontoutskrift.xlsx,12
+14,2026-07-04,Bankkonto,Overføring Innland  1362 Tor Bolle Waage Stavær,300.0,Vipps P2P - unspecified,expense,0,1,,Kontoutskrift.xlsx,15
+17,2026-07-04,Bankkonto,Varekjøp Circle k Telema Prestmoen 4 Porsgr Dato 04.07 kl. 10.36,-35.9,Cafe & bakery,expense,0,0,,Kontoutskrift.xlsx,18
+18,2026-07-04,Bankkonto,Varekjøp Vitusapotek Sto Vitaminvn. 7 Oslo Dato 04.07 kl. 15.10,-99.9,Health - pharmacy,expense,0,0,,Kontoutskrift.xlsx,19
+19,2026-07-04,Bankkonto,Visa  100021  Vipps:sindre Aalborg,-30.0,Vipps P2P - unspecified,expense,0,1,sindre Aalborg,Kontoutskrift.xlsx,20
+151,2026-07-04,Kredittkort,"REMA 1000 LORENVEIEN, OSLO",-726.63,Groceries,expense,0,0,,transaksjonsliste(1).xlsx,30
+152,2026-07-04,Kredittkort,"SPORT OUTLET, Oslo",-1085.0,Sports & outdoor,expense,0,0,,transaksjonsliste(1).xlsx,31
+153,2026-07-04,Kredittkort,"JOKER LØREN STA, Oslo",-256.73,Groceries,expense,0,0,,transaksjonsliste(1).xlsx,32
+12,2026-07-05,Bankkonto,Overføring  90700000000 Ingvild Kvamme Berg Tpp: Vipps,106.5,Vipps P2P - unspecified,expense,0,1,Ingvild Kvamme Berg Tpp,Kontoutskrift.xlsx,13
+13,2026-07-05,Bankkonto,Overføring  90800000000 Ingvild Kvamme Berg Tpp: Vipps,180.0,Vipps P2P - unspecified,expense,0,1,Ingvild Kvamme Berg Tpp,Kontoutskrift.xlsx,14
+15,2026-07-05,Bankkonto,Varekjøp Narvesen 885 Ri Thorvald Mey Oslo Dato 05.07 kl. 14.15,-32.0,Convenience & kiosk,expense,0,0,,Kontoutskrift.xlsx,16
+16,2026-07-05,Bankkonto,Varekjøp Grød Markveien Markveien 67 Oslo Dato 05.07 kl. 12.34,-213.0,Cafe & bakery,expense,0,0,,Kontoutskrift.xlsx,17
+154,2026-07-05,Kredittkort,"Vipps*Fly Chicken App, Oslo",-360.0,Restaurants & takeaway,expense,0,0,Fly Chicken App,transaksjonsliste(1).xlsx,33
+155,2026-07-06,Kredittkort,"VEIKROA NES I Å, Nes I AAdal",-244.0,Restaurants & takeaway,expense,0,0,,transaksjonsliste(1).xlsx,34
+156,2026-07-06,Kredittkort,"7-ELEVEN LANGS VEI 758, NES I ADAL",-47.9,Convenience & kiosk,expense,0,0,,transaksjonsliste(1).xlsx,35
+157,2026-07-06,Kredittkort,"Uno-X 71056 Nes i AAda, Nes I AAdal",-135.37,Fuel & EV charging,expense,0,0,,transaksjonsliste(1).xlsx,36
+158,2026-07-06,Kredittkort,Rabatt varekjøp ladestasjon,10.83,Fuel & EV charging,expense,0,0,,transaksjonsliste(1).xlsx,37
+21,2026-07-07,Bankkonto,Varekjøp Leirvassbu Turi Strandvegen Lesjas Dato 07.07 kl. 17.20,-50.0,Accommodation,expense,0,0,,Kontoutskrift.xlsx,22
+159,2026-07-07,Kredittkort,"Vipps*DNT-Den Norske T, Oslo",-860.0,Memberships,expense,0,0,DNT-Den Norske T,transaksjonsliste(1).xlsx,38
+160,2026-07-07,Kredittkort,"Leirvassbu Turi, Lesjaskog",-1280.0,Accommodation,expense,0,0,,transaksjonsliste(1).xlsx,39
+161,2026-07-07,Kredittkort,"Leirvassbu Turi, Lesjaskog",-120.0,Accommodation,expense,0,0,,transaksjonsliste(1).xlsx,40
+20,2026-07-08,Bankkonto,Kontoregulering  239 Ukespenger,1800.0,Internal transfer,transfer,1,0,,Kontoutskrift.xlsx,21
+162,2026-07-08,Kredittkort,"Vipps*VY App, Oslo",320.0,Public transport,expense,0,0,VY App,transaksjonsliste(1).xlsx,41
+163,2026-07-08,Kredittkort,"Vipps*Morgenbladet AS, Oslo",-10.0,Subscriptions,expense,0,0,Morgenbladet AS,transaksjonsliste(1).xlsx,42
+164,2026-07-08,Kredittkort,"Leirvassbu Turi, Lesjaskog",-105.0,Accommodation,expense,0,0,,transaksjonsliste(1).xlsx,43
+165,2026-07-08,Kredittkort,"Leirvassbu Turi, Lesjaskog",-45.0,Accommodation,expense,0,0,,transaksjonsliste(1).xlsx,44
+166,2026-07-08,Kredittkort,"Leirvassbu Turi, Lesjaskog",-38.0,Accommodation,expense,0,0,,transaksjonsliste(1).xlsx,45
+22,2026-07-10,Bankkonto,Varekjøp Gjendebu. Vagstadbygge Innvik Dato 10.07 kl. 12.40,-95.0,Accommodation,expense,0,0,,Kontoutskrift.xlsx,23
+23,2026-07-10,Bankkonto,Varekjøp Gjendebu. Vagstadbygge Innvik Dato 10.07 kl. 13.54,-120.0,Accommodation,expense,0,0,,Kontoutskrift.xlsx,24
+24,2026-07-10,Bankkonto,Varekjøp Gjendebu. Vagstadbygge Innvik Dato 10.07 kl. 14.52,-50.0,Accommodation,expense,0,0,,Kontoutskrift.xlsx,25
+33,2026-07-10,Bankkonto,Varekjøp Rema Leira Skulevegen 7 Leira i Val Dato 10.07 kl. 19.49,-74.9,Groceries,expense,0,0,,Kontoutskrift.xlsx,34
+34,2026-07-10,Bankkonto,Varekjøp Burger King Lei Markavegen Leira i Dato 10.07 kl. 19.06,-228.0,Restaurants & takeaway,expense,0,0,,Kontoutskrift.xlsx,35
+36,2026-07-10,Bankkonto,Visa  100021  Uno-x 72024 Leira El,-233.56,Fuel & EV charging,expense,0,0,,Kontoutskrift.xlsx,37
+26,2026-07-11,Bankkonto,Varekjøp Rema Lorenveien Lørenveien 3 Oslo Dato 11.07 kl. 14.43,-81.8,Groceries,expense,0,0,,Kontoutskrift.xlsx,27
+27,2026-07-11,Bankkonto,Varekjøp Rema Lorenveien Lørenveien 3 Oslo Dato 11.07 kl. 09.31,-380.68,Groceries,expense,0,0,,Kontoutskrift.xlsx,28
+29,2026-07-11,Bankkonto,Varekjøp Sats Hasle Grenseveien Oslo Dato 11.07 kl. 14.27,-69.0,Gym & fitness,expense,0,0,,Kontoutskrift.xlsx,30
+30,2026-07-11,Bankkonto,Varekjøp Kb37 Løren Lørenveien 4 Oslo Dato 11.07 kl. 09.42,-66.0,Cafe & bakery,expense,0,0,,Kontoutskrift.xlsx,31
+31,2026-07-11,Bankkonto,Varekjøp Meny Løren (gln Lørenveien 4 Oslo Dato 11.07 kl. 17.39,-63.21,Groceries,expense,0,0,,Kontoutskrift.xlsx,32
+37,2026-07-11,Bankkonto,Visa  100121  Vipps:sindre Aalborg,-160.0,Vipps P2P - unspecified,expense,0,1,sindre Aalborg,Kontoutskrift.xlsx,38
+38,2026-07-11,Bankkonto,Visa  100221  Vipps:tor Bolle Waage,-892.95,Vipps P2P - unspecified,expense,0,1,tor Bolle Waage,Kontoutskrift.xlsx,39
+28,2026-07-12,Bankkonto,Varekjøp Joker Løren Sta Peter Møller Oslo Dato 12.07 kl. 15.51,-124.13,Groceries,expense,0,0,,Kontoutskrift.xlsx,29
+32,2026-07-12,Bankkonto,Varekjøp Avd.47 Baker No Børsteveien Oslo Dato 12.07 kl. 11.18,-54.0,Cafe & bakery,expense,0,0,,Kontoutskrift.xlsx,33
+39,2026-07-12,Bankkonto,Visa  100321  Baneleie - Squash,-299.0,Sports & outdoor,expense,0,0,,Kontoutskrift.xlsx,40
+25,2026-07-13,Bankkonto,Giro  391 Fjordkraft AS AvtalegiroFjordkraft AS,-397.11,Utilities - electricity,expense,0,0,,Kontoutskrift.xlsx,26
+35,2026-07-13,Bankkonto,Varekjøp Kb37 Løren Lørenveien 4 Oslo Dato 13.07 kl. 07.16,-44.0,Cafe & bakery,expense,0,0,,Kontoutskrift.xlsx,36
+40,2026-07-13,Bankkonto,Varekjøp Rema 1000 Sinse Sinsenveien Oslo Dato 13.07 kl. 17.30,-70.4,Groceries,expense,0,0,,Kontoutskrift.xlsx,41
+41,2026-07-14,Bankkonto,Varekjøp Rema 1000 Sinse Sinsenveien Oslo Dato 14.07 kl. 08.18,-69.8,Groceries,expense,0,0,,Kontoutskrift.xlsx,42
+42,2026-07-14,Bankkonto,Overføring  91200000000 Ingvild Kvamme Berg Tpp: Vipps,159.5,Vipps P2P - unspecified,expense,0,1,Ingvild Kvamme Berg Tpp,Kontoutskrift.xlsx,43
+44,2026-07-14,Bankkonto,Varekjøp Rema Lorenveien Lørenveien 3 Oslo Dato 14.07 kl. 18.49,-87.9,Groceries,expense,0,0,,Kontoutskrift.xlsx,45
+47,2026-07-14,Bankkonto,Visa  100021  Dominos,-319.0,Restaurants & takeaway,expense,0,0,,Kontoutskrift.xlsx,48
+43,2026-07-15,Bankkonto,Kontoregulering  242 Ukespenger,2200.0,Internal transfer,transfer,1,0,,Kontoutskrift.xlsx,44
+45,2026-07-15,Bankkonto,Overføring Innland  91300000000 Torkel Aalborg,44.0,Vipps P2P - unspecified,expense,0,1,Torkel Aalborg,Kontoutskrift.xlsx,46
+46,2026-07-15,Bankkonto,Varekjøp Kiwi 373 Solli Henrik Ibsen Oslo Dato 15.07 kl. 13.57,-142.8,Groceries,expense,0,0,,Kontoutskrift.xlsx,47
+48,2026-07-15,Bankkonto,Varekjøp Rema 1000 Sinse Sinsenveien Oslo Dato 15.07 kl. 17.59,-89.8,Groceries,expense,0,0,,Kontoutskrift.xlsx,49
+49,2026-07-16,Bankkonto,Varekjøp Rema Lorenveien Lørenveien 3 Oslo Dato 16.07 kl. 12.26,-193.19,Groceries,expense,0,0,,Kontoutskrift.xlsx,50
+51,2026-07-16,Bankkonto,"Visa  100022  Nok 219,00 Spotifyse",-219.0,Subscriptions,expense,0,0,,Kontoutskrift.xlsx,52
+50,2026-07-17,Bankkonto,Overføring Sindre Aalborg Stol Fra JyskRef:,1800.0,Home & furniture,expense,0,0,,Kontoutskrift.xlsx,51
+52,2026-07-17,Bankkonto,Lønn  900112233 Nordvest Teknikk AS,41113.67,Salary,income,0,0,Nordvest Teknikk AS,Kontoutskrift.xlsx,53
+58,2026-07-17,Bankkonto,Varekjøp Rema Lorenveien Lørenveien 3 Oslo Dato 17.07 kl. 17.14,-161.14,Groceries,expense,0,0,,Kontoutskrift.xlsx,59
+61,2026-07-17,Bankkonto,Varekjøp Haugen Ullevålsveie Oslo Dato 17.07 kl. 18.48,-58.0,Bars & nightlife,expense,0,0,,Kontoutskrift.xlsx,62
+62,2026-07-17,Bankkonto,Varekjøp Haugen Ullevålsveie Oslo Dato 17.07 kl. 19.34,-114.0,Bars & nightlife,expense,0,0,,Kontoutskrift.xlsx,63
+53,2026-07-18,Bankkonto,Overføring  91500000000 Ingvild Kvamme Berg Tpp: Vipps,150.0,Vipps P2P - unspecified,expense,0,1,Ingvild Kvamme Berg Tpp,Kontoutskrift.xlsx,54
+59,2026-07-18,Bankkonto,Varekjøp Avd.47 Baker No Børsteveien Oslo Dato 18.07 kl. 13.28,-300.0,Cafe & bakery,expense,0,0,,Kontoutskrift.xlsx,60
+60,2026-07-18,Bankkonto,Varekjøp Rema Lorenveien Lørenveien 3 Oslo Dato 18.07 kl. 13.42,-37.9,Groceries,expense,0,0,,Kontoutskrift.xlsx,61
+63,2026-07-18,Bankkonto,Varekjøp Rema Majorstua Sørkedalsvei Oslo Dato 18.07 kl. 20.46,-40.9,Groceries,expense,0,0,,Kontoutskrift.xlsx,64
+64,2026-07-18,Bankkonto,Varekjøp Jysk N603 Hasle Bøkkeveien 4 Oslo Dato 18.07 kl. 11.17,-1800.0,Home & furniture,expense,0,0,,Kontoutskrift.xlsx,65
+65,2026-07-18,Bankkonto,Varekjøp Meny Løren (gln Lørenveien 4 Oslo Dato 18.07 kl. 13.17,-168.52,Groceries,expense,0,0,,Kontoutskrift.xlsx,66
+69,2026-07-18,Bankkonto,Visa  100021  Vipps:torkel Aalborg,-265.0,Vipps P2P - unspecified,expense,0,1,torkel Aalborg,Kontoutskrift.xlsx,70
+70,2026-07-18,Bankkonto,Visa  100121  Hasle Torg,-50.0,Groceries,expense,0,0,Hasle Torg,Kontoutskrift.xlsx,71
+54,2026-07-20,Bankkonto,Overføring  91600000000 Ingvild Kvamme Berg Tpp: Vipps,78.5,Vipps P2P - unspecified,expense,0,1,Ingvild Kvamme Berg Tpp,Kontoutskrift.xlsx,55
+55,2026-07-20,Bankkonto,Giro  394 Sats Vest AS AvtalegiroSats Vest AS,-394.0,Gym & fitness,expense,0,0,,Kontoutskrift.xlsx,56
+56,2026-07-20,Bankkonto,Giro  393 Gjensidige Forsikring Asa AvtalegiroGjensidige Forsikring Asa,-69.0,Insurance,expense,0,0,,Kontoutskrift.xlsx,57
+57,2026-07-20,Bankkonto,Kontoregulering  382 Overføring Mellom Egne Konti,-2000.0,Internal transfer,transfer,1,0,,Kontoutskrift.xlsx,58
+66,2026-07-20,Bankkonto,Overføring Innland  9170000000 Spotify Sindre Aalborg,44.0,Subscriptions,expense,0,0,Spotify Sindre Aalborg,Kontoutskrift.xlsx,67
+67,2026-07-20,Bankkonto,Varekjøp Avd.47 Baker No Børsteveien Oslo Dato 20.07 kl. 14.48,-157.0,Cafe & bakery,expense,0,0,,Kontoutskrift.xlsx,68
+71,2026-07-20,Bankkonto,Kontoregulering  397 Mobil Overføring,-1700.0,Internal transfer,transfer,1,0,,Kontoutskrift.xlsx,72
+72,2026-07-20,Bankkonto,Kontoregulering  398 Mobil Overføring,-16000.0,Internal transfer,transfer,1,0,,Kontoutskrift.xlsx,73
+73,2026-07-20,Bankkonto,Overføring Innland  396 Til : 99900011122 Mobil Betaling,-4982.8,Credit card payment,transfer,1,0,Mobil Betaling,Kontoutskrift.xlsx,74
+74,2026-07-20,Bankkonto,Varekjøp Rema Lorenveien Lørenveien 3 Oslo Dato 20.07 kl. 19.04,-223.2,Groceries,expense,0,0,,Kontoutskrift.xlsx,75
+167,2026-07-20,Kredittkort,Innbetaling,4982.8,Credit card payment,transfer,1,0,,transaksjonsliste.xlsx,3
+180,2026-07-20,Bankkonto,"Lån  422687 Lån 1516.09.18257 Avdrag Kr 3.407,26Renter Kr 9.816,49  [interest]",-9816.49,Mortgage - interest,expense,0,0,,Kontoutskrift.xlsx,69
+181,2026-07-20,Bankkonto,"Lån  422687 Lån 1516.09.18257 Avdrag Kr 3.407,26Renter Kr 9.816,49  [principal]",-3407.26,Mortgage - principal,transfer,1,0,,Kontoutskrift.xlsx,69
+182,2026-07-20,Bankkonto,"Lån  422687 Lån 1516.09.18257 Avdrag Kr 3.407,26Renter Kr 9.816,49  [fees]",-65.0,Mortgage - fees,expense,0,0,,Kontoutskrift.xlsx,69
+75,2026-07-21,Bankkonto,Varekjøp Rema Lorenveien Lørenveien 3 Oslo Dato 21.07 kl. 14.15,-55.1,Groceries,expense,0,0,,Kontoutskrift.xlsx,76
+78,2026-07-21,Bankkonto,Varekjøp Blomsterpikenes Lørenveien 4 Oslo Dato 21.07 kl. 15.53,-100.0,Flowers & plants,expense,0,0,,Kontoutskrift.xlsx,79
+79,2026-07-21,Bankkonto,Varekjøp Rema Lorenveien Lørenveien 3 Oslo Dato 21.07 kl. 16.45,-119.6,Groceries,expense,0,0,,Kontoutskrift.xlsx,80
+80,2026-07-21,Bankkonto,Varekjøp Dios House Of b Ulvenveien 7 Oslo Dato 21.07 kl. 15.27,-600.0,Clothing & shoes,expense,0,0,,Kontoutskrift.xlsx,81
+81,2026-07-21,Bankkonto,Varekjøp Normal Oslo Vin Bøkkerveien Oslo Dato 21.07 kl. 15.46,-56.0,Personal care,expense,0,0,,Kontoutskrift.xlsx,82
+83,2026-07-21,Bankkonto,Visa  100021  Vipps:torkel Aalborg,-210.0,Vipps P2P - unspecified,expense,0,1,torkel Aalborg,Kontoutskrift.xlsx,84
+76,2026-07-22,Bankkonto,Overføring  91800000000 Ingvild Kvamme Berg Tpp: Vipps,260.0,Vipps P2P - unspecified,expense,0,1,Ingvild Kvamme Berg Tpp,Kontoutskrift.xlsx,77
+77,2026-07-22,Bankkonto,Kontoregulering  243 Ukespenger,2200.0,Internal transfer,transfer,1,0,,Kontoutskrift.xlsx,78
+82,2026-07-22,Bankkonto,Varekjøp Meny Telemarksp Prestemoen 6 Eidang Dato 22.07 kl. 14.28,-504.28,Groceries,expense,0,0,,Kontoutskrift.xlsx,83
+85,2026-07-23,Bankkonto,Overføring  91900000000 Ingvild Kvamme Berg IsTpp: Vipps,25.0,Cafe & bakery,expense,0,0,Ingvild Kvamme Berg IsTpp,Kontoutskrift.xlsx,86
+86,2026-07-23,Bankkonto,Overføring  92000000000 Ingvild Kvamme Berg Tpp: Vipps,130.0,Vipps P2P - unspecified,expense,0,1,Ingvild Kvamme Berg Tpp,Kontoutskrift.xlsx,87
+88,2026-07-23,Bankkonto,Varekjøp Spar Drangedal Kåsmyra 3750 Dr.dal Dato 23.07 kl. 16.45,-258.5,Groceries,expense,0,0,,Kontoutskrift.xlsx,89
+90,2026-07-23,Bankkonto,Visa  100021  Vipps:toke Brygge Cafe Og,-50.0,Restaurants & takeaway,expense,0,0,toke Brygge Cafe Og,Kontoutskrift.xlsx,91
+84,2026-07-24,Bankkonto,Giro  921000000 Nordvest Teknikk AS,835.8,Employer reimbursement,income,0,1,Nordvest Teknikk AS,Kontoutskrift.xlsx,85
+87,2026-07-24,Bankkonto,Overføring  92200000000 Ingvild Kvamme Berg LadingTpp: Vipps,140.0,Fuel & EV charging,expense,0,0,Ingvild Kvamme Berg LadingTpp,Kontoutskrift.xlsx,88
+89,2026-07-24,Bankkonto,Varekjøp Mcd 082 Fokserødveie Sandefjord Dato 24.07 kl. 12.20,-42.0,Restaurants & takeaway,expense,0,0,,Kontoutskrift.xlsx,90
+97,2026-07-24,Bankkonto,Varekjøp Rema Lorenveien Lørenveien 3 Oslo Dato 24.07 kl. 19.16,-65.6,Groceries,expense,0,0,,Kontoutskrift.xlsx,98
+107,2026-07-24,Bankkonto,Visa  100021  Mer Norway AS,-280.55,Fuel & EV charging,expense,0,0,Mer Norway AS,Kontoutskrift.xlsx,108
+108,2026-07-24,Bankkonto,Visa  100121  Ecom Capital AS,-210.0,Uncategorised,expense,0,1,Ecom Capital AS,Kontoutskrift.xlsx,109
+109,2026-07-24,Bankkonto,Visa  100221  Vipps:tor Bolle Waage,-120.0,Vipps P2P - unspecified,expense,0,1,tor Bolle Waage,Kontoutskrift.xlsx,110
+91,2026-07-25,Bankkonto,Overføring  9230000000 Vetle Nyhus Dahl KinoTpp: Vipps Mobilepay AS,-180.0,Entertainment,expense,0,0,Vetle Nyhus Dahl KinoTpp,Kontoutskrift.xlsx,92
+92,2026-07-25,Bankkonto,Overføring  92400000000 Ingvild Kvamme Berg Mat Og SnacksTpp: Vipps,100.0,Groceries,expense,0,0,Ingvild Kvamme Berg Mat,Kontoutskrift.xlsx,93
+93,2026-07-25,Bankkonto,Giro  392 Statens Lånekasse For Utdannin AvtalegiroTerminbeløp Jul. 2026,-2468.0,Student loan,expense,0,0,,Kontoutskrift.xlsx,94
+94,2026-07-25,Bankkonto,Overføring Innland  401 Øyvind Stene Lunde BetalingTpp: Vipps Mobilepay AS,-150.0,Vipps P2P - unspecified,expense,0,1,,Kontoutskrift.xlsx,95
+98,2026-07-25,Bankkonto,Varekjøp Spar Dælenengga Dælenenggata Oslo Dato 25.07 kl. 17.39,-148.6,Groceries,expense,0,0,,Kontoutskrift.xlsx,99
+99,2026-07-25,Bankkonto,Varekjøp Rema Lorenveien Lørenveien 3 Oslo Dato 25.07 kl. 11.22,-135.9,Groceries,expense,0,0,,Kontoutskrift.xlsx,100
+100,2026-07-25,Bankkonto,Varekjøp Rema Lorenveien Lørenveien 3 Oslo Dato 25.07 kl. 12.44,-35.9,Groceries,expense,0,0,,Kontoutskrift.xlsx,101
+95,2026-07-26,Bankkonto,Varekjøp Plantehallen Av Lørenveien 6 Oslo Dato 26.07 kl. 16.35,-200.0,Flowers & plants,expense,0,0,,Kontoutskrift.xlsx,96
+96,2026-07-26,Bankkonto,Varekjøp Joker Hasle St. Jørgens Oslo Dato 26.07 kl. 15.11,-35.28,Groceries,expense,0,0,,Kontoutskrift.xlsx,97
+101,2026-07-26,Bankkonto,Varekjøp Tilt . Oslo Dato 26.07 kl. 18.38,-262.0,Bars & nightlife,expense,0,0,,Kontoutskrift.xlsx,102
+102,2026-07-26,Bankkonto,Varekjøp Circle k Økern Østre Aker v Oslo Dato 26.07 kl. 13.22,-51.9,Fuel & EV charging,expense,0,0,,Kontoutskrift.xlsx,103
+103,2026-07-26,Bankkonto,Varekjøp Bastard Burger Torggata 18 Oslo Dato 26.07 kl. 17.42,-258.0,Restaurants & takeaway,expense,0,0,,Kontoutskrift.xlsx,104
+104,2026-07-27,Bankkonto,Kontoregulering  245 Mobil Overføring,12785.0,Internal transfer,transfer,1,0,,Kontoutskrift.xlsx,105
+105,2026-07-27,Bankkonto,Kontoregulering  246 Mobil Overføring,800.0,Internal transfer,transfer,1,0,,Kontoutskrift.xlsx,106
+106,2026-07-27,Bankkonto,Overføring Innland  403 Nordvest Teknikk AS Mobil BetalingDividend Kasper Aalborg,-800.0,Employer loan repayment,transfer,1,0,,Kontoutskrift.xlsx,107
+110,2026-07-27,Bankkonto,Varekjøp All In One AS Skjeringen Stavanger Dato 27.07 kl. 18.20,-55.04,Groceries,expense,0,0,,Kontoutskrift.xlsx,111
+111,2026-07-27,Bankkonto,Varekjøp Rema Lorenveien Lørenveien 3 Oslo Dato 27.07 kl. 18.07,-176.6,Groceries,expense,0,0,,Kontoutskrift.xlsx,112
+112,2026-07-28,Bankkonto,Overføring  92500000000 Ingvild Kvamme Berg MatTpp: Vipps,80.0,Groceries,expense,0,0,Ingvild Kvamme Berg MatTpp,Kontoutskrift.xlsx,113
+113,2026-07-28,Bankkonto,Overføring  9260000000 Ingvild Kvamme Berg BokTpp: Vipps Mobilepay AS,-166.0,Gifts,expense,0,0,Ingvild Kvamme Berg BokTpp,Kontoutskrift.xlsx,114
+114,2026-07-28,Bankkonto,Overføring  92700000000 Ingvild Kvamme Berg Tpp: Vipps,141.5,Vipps P2P - unspecified,expense,0,1,Ingvild Kvamme Berg Tpp,Kontoutskrift.xlsx,115
+115,2026-07-28,Bankkonto,Overføring  92800000000 Torkel Aalborg BokTpp: Vipps,55.0,Gifts,expense,0,0,Torkel Aalborg BokTpp,Kontoutskrift.xlsx,116
+116,2026-07-28,Bankkonto,Overføring Sindre Aalborg Gave Til MammaRef:,55.0,Gifts,expense,0,0,,Kontoutskrift.xlsx,117
+118,2026-07-28,Bankkonto,Varekjøp Rema Lorenveien Lørenveien 3 Oslo Dato 28.07 kl. 16.27,-63.9,Groceries,expense,0,0,,Kontoutskrift.xlsx,119
+119,2026-07-28,Bankkonto,Visa  100021  Dominos,-283.0,Restaurants & takeaway,expense,0,0,,Kontoutskrift.xlsx,120
+117,2026-07-29,Bankkonto,Kontoregulering  244 Ukespenger,2200.0,Internal transfer,transfer,1,0,,Kontoutskrift.xlsx,118
+120,2026-07-29,Bankkonto,Varekjøp Rema Lorenveien Lørenveien 3 Oslo Dato 29.07 kl. 16.37,-102.68,Groceries,expense,0,0,,Kontoutskrift.xlsx,121
+121,2026-07-29,Bankkonto,Visa  100021  Zettle_:lege Midhat Re,-299.0,Health - doctor,expense,0,0,,Kontoutskrift.xlsx,122
+122,2026-07-30,Bankkonto,Varekjøp Kontroll_datter Grønland 10 Oslo Dato 30.07 kl. 18.28,-194.0,Bars & nightlife,expense,0,0,,Kontoutskrift.xlsx,123
+123,2026-07-30,Bankkonto,Varekjøp Kontroll_datter Grønland 10 Oslo Dato 30.07 kl. 19.07,-112.0,Bars & nightlife,expense,0,0,,Kontoutskrift.xlsx,124
+168,2026-07-30,Kredittkort,"Mol*Hoome AS, 4799000000",-13990.0,Home & furniture,expense,0,0,,transaksjonsliste.xlsx,4
+169,2026-07-31,Kredittkort,"BOLT.EU/P/9290000000, Tallinn, EST",-25.0,Taxi & ride-hailing,expense,0,0,,transaksjonsliste.xlsx,5
+170,2026-07-31,Kredittkort,"MAULUND A/S, Risskov, DNK",-298.0,Uncategorised,expense,0,1,,transaksjonsliste.xlsx,6
+171,2026-08-01,Kredittkort,"BOLT.EU/R/9300000000, Tallinn, EST",-29.18,Taxi & ride-hailing,expense,0,0,,transaksjonsliste.xlsx,7
+172,2026-08-02,Kredittkort,"JOKER LØREN STA, Oslo",-97.87,Groceries,expense,0,0,,transaksjonsliste.xlsx,8
+173,2026-08-06,Kredittkort,Innbetaling,14440.05,Credit card payment,transfer,1,0,,transaksjonsliste.xlsx,9
+174,2026-08-08,Kredittkort,"VOLT 285, Oslo",-1022.5,Clothing & shoes,expense,0,0,,transaksjonsliste.xlsx,10
+175,2026-08-08,Kredittkort,"EURO SKO STORO, 0485 OSLO",-999.0,Clothing & shoes,expense,0,0,,transaksjonsliste.xlsx,11
+176,2026-08-08,Kredittkort,"BOYS STORO, OSLO",-449.4,Clothing & shoes,expense,0,0,,transaksjonsliste.xlsx,12
+177,2026-08-09,Kredittkort,"Vipps*Ingvild Kvamme B, Oslo",-89.0,Vipps P2P - unspecified,expense,0,1,Ingvild Kvamme B,transaksjonsliste.xlsx,13
+178,2026-08-09,Kredittkort,"VYGRUPPEN AS, OSLO",-678.0,Public transport,expense,0,0,,transaksjonsliste.xlsx,14
+179,2026-08-09,Kredittkort,"JOKER LØREN STA, Oslo",-163.7,Groceries,expense,0,0,,transaksjonsliste.xlsx,15

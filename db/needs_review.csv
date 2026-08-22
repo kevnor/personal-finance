@@ -1,0 +1,30 @@
+id,date,account,description,amount,category,category_kind,is_transfer,needs_review,counterparty,source_file,source_row
+130,2026-06-15,Kredittkort,"Vipps*Bjarte Lunde Sk, Oslo",-350.0,Vipps P2P - unspecified,expense,0,1,Bjarte Lunde Sk,transaksjonsliste(1).xlsx,9
+131,2026-06-17,Kredittkort,"Vipps*Anders Vestli B, Oslo",-270.0,Vipps P2P - unspecified,expense,0,1,Anders Vestli B,transaksjonsliste(1).xlsx,10
+1,2026-06-30,Bankkonto,Overføring  90200000000 Ingvild Kvamme Berg Tpp: Vipps,190.0,Vipps P2P - unspecified,expense,0,1,Ingvild Kvamme Berg Tpp,Kontoutskrift.xlsx,2
+2,2026-07-01,Bankkonto,Overføring  90300000000 Ingvild Kvamme Berg Tpp: Vipps,102.0,Vipps P2P - unspecified,expense,0,1,Ingvild Kvamme Berg Tpp,Kontoutskrift.xlsx,3
+147,2026-07-01,Kredittkort,"Vipps*Eirik Tangen, Oslo",-270.0,Vipps P2P - unspecified,expense,0,1,Eirik Tangen,transaksjonsliste(1).xlsx,26
+148,2026-07-01,Kredittkort,"Vipps*Jonas Vestli B, Oslo",-270.0,Vipps P2P - unspecified,expense,0,1,Jonas Vestli B,transaksjonsliste(1).xlsx,27
+149,2026-07-01,Kredittkort,"Vipps*Trygve Solheim H, Oslo",-270.0,Vipps P2P - unspecified,expense,0,1,Trygve Solheim H,transaksjonsliste(1).xlsx,28
+150,2026-07-01,Kredittkort,"Vipps*Halvard Stene M, Oslo",-270.0,Vipps P2P - unspecified,expense,0,1,Halvard Stene M,transaksjonsliste(1).xlsx,29
+14,2026-07-04,Bankkonto,Overføring Innland  1362 Tor Bolle Waage Stavær,300.0,Vipps P2P - unspecified,expense,0,1,,Kontoutskrift.xlsx,15
+19,2026-07-04,Bankkonto,Visa  100021  Vipps:sindre Aalborg,-30.0,Vipps P2P - unspecified,expense,0,1,sindre Aalborg,Kontoutskrift.xlsx,20
+12,2026-07-05,Bankkonto,Overføring  90700000000 Ingvild Kvamme Berg Tpp: Vipps,106.5,Vipps P2P - unspecified,expense,0,1,Ingvild Kvamme Berg Tpp,Kontoutskrift.xlsx,13
+13,2026-07-05,Bankkonto,Overføring  90800000000 Ingvild Kvamme Berg Tpp: Vipps,180.0,Vipps P2P - unspecified,expense,0,1,Ingvild Kvamme Berg Tpp,Kontoutskrift.xlsx,14
+37,2026-07-11,Bankkonto,Visa  100121  Vipps:sindre Aalborg,-160.0,Vipps P2P - unspecified,expense,0,1,sindre Aalborg,Kontoutskrift.xlsx,38
+38,2026-07-11,Bankkonto,Visa  100221  Vipps:tor Bolle Waage,-892.95,Vipps P2P - unspecified,expense,0,1,tor Bolle Waage,Kontoutskrift.xlsx,39
+42,2026-07-14,Bankkonto,Overføring  91200000000 Ingvild Kvamme Berg Tpp: Vipps,159.5,Vipps P2P - unspecified,expense,0,1,Ingvild Kvamme Berg Tpp,Kontoutskrift.xlsx,43
+45,2026-07-15,Bankkonto,Overføring Innland  91300000000 Torkel Aalborg,44.0,Vipps P2P - unspecified,expense,0,1,Torkel Aalborg,Kontoutskrift.xlsx,46
+53,2026-07-18,Bankkonto,Overføring  91500000000 Ingvild Kvamme Berg Tpp: Vipps,150.0,Vipps P2P - unspecified,expense,0,1,Ingvild Kvamme Berg Tpp,Kontoutskrift.xlsx,54
+69,2026-07-18,Bankkonto,Visa  100021  Vipps:torkel Aalborg,-265.0,Vipps P2P - unspecified,expense,0,1,torkel Aalborg,Kontoutskrift.xlsx,70
+54,2026-07-20,Bankkonto,Overføring  91600000000 Ingvild Kvamme Berg Tpp: Vipps,78.5,Vipps P2P - unspecified,expense,0,1,Ingvild Kvamme Berg Tpp,Kontoutskrift.xlsx,55
+83,2026-07-21,Bankkonto,Visa  100021  Vipps:torkel Aalborg,-210.0,Vipps P2P - unspecified,expense,0,1,torkel Aalborg,Kontoutskrift.xlsx,84
+76,2026-07-22,Bankkonto,Overføring  91800000000 Ingvild Kvamme Berg Tpp: Vipps,260.0,Vipps P2P - unspecified,expense,0,1,Ingvild Kvamme Berg Tpp,Kontoutskrift.xlsx,77
+86,2026-07-23,Bankkonto,Overføring  92000000000 Ingvild Kvamme Berg Tpp: Vipps,130.0,Vipps P2P - unspecified,expense,0,1,Ingvild Kvamme Berg Tpp,Kontoutskrift.xlsx,87
+84,2026-07-24,Bankkonto,Giro  921000000 Nordvest Teknikk AS,835.8,Employer reimbursement,income,0,1,Nordvest Teknikk AS,Kontoutskrift.xlsx,85
+108,2026-07-24,Bankkonto,Visa  100121  Ecom Capital AS,-210.0,Uncategorised,expense,0,1,Ecom Capital AS,Kontoutskrift.xlsx,109
+109,2026-07-24,Bankkonto,Visa  100221  Vipps:tor Bolle Waage,-120.0,Vipps P2P - unspecified,expense,0,1,tor Bolle Waage,Kontoutskrift.xlsx,110
+94,2026-07-25,Bankkonto,Overføring Innland  401 Øyvind Stene Lunde BetalingTpp: Vipps Mobilepay AS,-150.0,Vipps P2P - unspecified,expense,0,1,,Kontoutskrift.xlsx,95
+114,2026-07-28,Bankkonto,Overføring  92700000000 Ingvild Kvamme Berg Tpp: Vipps,141.5,Vipps P2P - unspecified,expense,0,1,Ingvild Kvamme Berg Tpp,Kontoutskrift.xlsx,115
+170,2026-07-31,Kredittkort,"MAULUND A/S, Risskov, DNK",-298.0,Uncategorised,expense,0,1,,transaksjonsliste.xlsx,6
+177,2026-08-09,Kredittkort,"Vipps*Ingvild Kvamme B, Oslo",-89.0,Vipps P2P - unspecified,expense,0,1,Ingvild Kvamme B,transaksjonsliste.xlsx,13
