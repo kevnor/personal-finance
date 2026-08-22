@@ -18,7 +18,8 @@ def golden():
 
 @pytest.mark.parametrize("row", golden(), ids=lambda r: r["description"][:40])
 def test_golden_categorisation(row):
-    assert categorise.categorise(row["description"]).category == row["category"]
+    assert categorise.categorise(row["description"]) == categorise.Verdict(
+        row["category"], row["needs_review"])
 
 
 def test_memo_glued_to_tpp_suffix_still_matches():
@@ -72,3 +73,22 @@ def test_treatments_keys_are_known_categories():
     category name."""
     category_names = {name for name, _kind in categorise.CATEGORIES}
     assert set(categorise.TREATMENTS) <= category_names
+
+
+def test_treatments_values_are_valid_enum_members():
+    """A typo in a TREATMENTS value (e.g. "comitted") would otherwise survive
+    until a migration's CHECK constraint fails at runtime."""
+    assert all(
+        b in {"fixed", "variable", "exceptional"}
+        and c in {"settlement", "committed", "savings"}
+        for b, c in categorise.TREATMENTS.values())
+
+
+def test_bok_memo_glued_to_tpp_suffix_matches_books():
+    """The \\bbok(tpp|ref) rule has no real-data coverage: its only matching
+    rows in the fixture are the two CORRECTED exclusions. Cover it directly
+    with a synthetic description shaped like the real Vipps memos (a 'Bok'
+    memo glued to a 'Tpp:' suffix, same as the Kino/Lading regression case)."""
+    assert categorise.categorise(
+        "Overføring  4699999999 Vetle Nyhus Dahl BokTpp: Vipps"
+    ).category == "Books"
