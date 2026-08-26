@@ -99,8 +99,8 @@ def test_categories_are_assigned_on_insert(con):
 
 
 def test_stored_row_metadata_matches_the_import(con):
-    """A regression in origin, batch_id, is_transfer, or fingerprint would
-    otherwise pass the whole suite unnoticed."""
+    """A regression in origin, batch_id, or fingerprint would otherwise pass
+    the whole suite unnoticed."""
     batch = new_batch(con, "meta")
     rows = dnb_xlsx.read_statement(CARD_1, dnb_xlsx.CARD)
     inserted, _ = store.upsert_transactions(
@@ -108,10 +108,108 @@ def test_stored_row_metadata_matches_the_import(con):
         categoriser=categorise.categorise)
 
     stored = con.execute(
-        "SELECT origin, batch_id, is_transfer, fingerprint"
-        " FROM transactions").fetchall()
+        "SELECT origin, batch_id, fingerprint FROM transactions").fetchall()
     assert len(stored) == inserted == 43
     assert all(r["origin"] == "import" for r in stored)
     assert all(r["batch_id"] == batch for r in stored)
-    assert all(r["is_transfer"] in (0, 1) for r in stored)
     assert all(r["fingerprint"] != "" for r in stored)
+
+
+def test_is_transfer_is_set_from_the_category_kind(con):
+    """`r["is_transfer"] in (0, 1)` is a tautology -- the CHECK constraint
+    already guarantees it, so hardcoding is_transfer = 0 in the writer passed
+    the whole suite. That flag is what keeps ~26 912 kr of card settlements
+    out of _variable_spent, so it is asserted against actual categories here.
+    """
+    load(con, CARD_1)
+    by_kind = dict(con.execute(
+        "SELECT c.kind, SUM(t.is_transfer) FROM transactions t"
+        " JOIN categories c ON c.id = t.category_id GROUP BY c.kind"))
+    counts = dict(con.execute(
+        "SELECT c.kind, COUNT(*) FROM transactions t"
+        " JOIN categories c ON c.id = t.category_id GROUP BY c.kind"))
+
+    # The six `Innbetaling` card repayments are the only transfers in this
+    # statement, and every one of them must be flagged.
+    assert counts["transfer"] == by_kind["transfer"] == 6
+    assert by_kind["expense"] == 0          # merchants are never transfers
+    assert con.execute(
+        "SELECT COUNT(*) FROM transactions t JOIN categories c"
+        " ON c.id = t.category_id WHERE c.name = 'Credit card payment'"
+        "   AND t.is_transfer = 1").fetchone()[0] == 6
+
+
+def test_needs_review_is_set_from_the_verdict(con):
+    """needs_review is the entire review queue, yet hardcoding it to 0 in the
+    writer passed the whole suite. This statement's six memo-less Vipps rows
+    are exactly the rows categorise flags."""
+    rows = dnb_xlsx.read_statement(CARD_1, dnb_xlsx.CARD)
+    expected = {r.description for r in rows
+                if categorise.categorise(r.description).needs_review}
+    assert len(expected) == 6
+
+    load(con, CARD_1)
+    flagged = {r["description"] for r in con.execute(
+        "SELECT description FROM transactions WHERE needs_review = 1")}
+    assert flagged == expected
+    assert con.execute(
+        "SELECT COUNT(*) FROM transactions WHERE needs_review = 0"
+    ).fetchone()[0] == 37
+
+
+def test_an_identical_row_on_a_second_account_is_not_skipped(con):
+    """Identity is scoped by account, so the same purchase appearing on two
+    accounts is two transactions. Dropping account_id from the existence
+    check passed the whole suite: nothing imported the same rows under two
+    account ids, and the fingerprint already hashes account_key, which masks
+    the omission until two accounts genuinely share one.
+    """
+    con.execute("INSERT INTO accounts (name, kind) VALUES ('Andre','credit_card')")
+    con.commit()
+    second = con.execute(
+        "SELECT id FROM accounts WHERE name = 'Andre'").fetchone()["id"]
+    rows = dnb_xlsx.read_statement(CARD_1, dnb_xlsx.CARD)
+
+    assert store.upsert_transactions(
+        con, rows, account_id=1, batch_id=new_batch(con, "a"),
+        categoriser=categorise.categorise) == (43, 0)
+    # Same rows, same fingerprint inputs except the account key.
+    assert store.upsert_transactions(
+        con, rows, account_id=second, batch_id=new_batch(con, "b"),
+        categoriser=categorise.categorise) == (43, 0)
+    assert count(con) == 86
+
+    # ... and each account is still individually idempotent.
+    assert store.upsert_transactions(
+        con, rows, account_id=second, batch_id=new_batch(con, "c"),
+        categoriser=categorise.categorise) == (0, 43)
+    assert count(con) == 86
+
+
+def test_derived_identity_is_also_scoped_by_account(con):
+    """insert_derived_rows shares upsert's identity scheme and has no unique
+    index behind it (003 excludes is_derived = 1), so its existence check is
+    the only thing standing between a repeat run and a duplicated split."""
+    con.execute("INSERT INTO accounts (name, kind) VALUES ('Andre','credit_card')")
+    con.commit()
+    second = con.execute(
+        "SELECT id FROM accounts WHERE name = 'Andre'").fetchone()["id"]
+
+    row = dnb_xlsx.RawRow("2026-07-20", "Lån 12345678901 Avdrag", -100.0, 7)
+    parts = [type("P", (), {"description": "part", "amount": -100.0,
+                            "category": "Groceries"})()]
+
+    def splitter(_description, _amount):
+        return parts
+
+    for account in (1, second):
+        assert store.insert_derived_rows(
+            con, [row], account_id=account, batch_id=new_batch(con, "d"),
+            splitter=splitter) == (1, 0, 1)
+    assert count(con) == 2
+
+    # Repeating either account is still a no-op.
+    assert store.insert_derived_rows(
+        con, [row], account_id=second, batch_id=new_batch(con, "e"),
+        splitter=splitter) == (0, 1, 0)
+    assert count(con) == 2
