@@ -52,7 +52,8 @@ def build(db_path, input_dir, migrations_dir) -> dict:
         account_id = accounts[account]
         got, dup = store.upsert_transactions(
             con, normal_rows, account_id, batch,
-            lambda d: categorise.categorise(d, learned=learned))
+            lambda d: categorise.categorise(d, learned=learned),
+            counterparty=categorise.extract_counterparty)
         inserted += got
         skipped += dup
 

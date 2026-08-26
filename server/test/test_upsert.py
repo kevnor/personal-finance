@@ -35,7 +35,8 @@ def load(con, path, label="f"):
     rows = dnb_xlsx.read_statement(path, dnb_xlsx.CARD)
     return store.upsert_transactions(
         con, rows, account_id=1,
-        batch_id=batch, categoriser=categorise.categorise)
+        batch_id=batch, categoriser=categorise.categorise,
+        counterparty=categorise.extract_counterparty)
 
 
 def count(con):
@@ -113,6 +114,33 @@ def test_stored_row_metadata_matches_the_import(con):
     assert all(r["origin"] == "import" for r in stored)
     assert all(r["batch_id"] == batch for r in stored)
     assert all(r["fingerprint"] != "" for r in stored)
+
+
+def test_counterparty_is_extracted_and_stored(con):
+    """The legacy script populated counterparty for 48 of the 181 rows; the
+    rebuilt database had 0, because extract_counterparty was never wired to
+    the insert path and was dead code."""
+    load(con, CARD_1)
+    stored = dict(con.execute(
+        "SELECT description, counterparty FROM transactions"
+        " WHERE counterparty IS NOT NULL"))
+    assert stored["Vipps*Bjarte Lunde Sk, Oslo"] == "Bjarte Lunde Sk"
+    assert stored["Vipps*VY App, Oslo"] == "VY App"
+    # A plain merchant line has no counterparty to extract.
+    assert con.execute(
+        "SELECT counterparty FROM transactions WHERE description = 'Innbetaling'"
+    ).fetchone()[0] is None
+
+
+def test_counterparty_is_left_null_when_no_extractor_is_given(con):
+    """store is persistence: the extraction is injected, not imported, so
+    omitting it must simply leave the column NULL rather than fail."""
+    rows = dnb_xlsx.read_statement(CARD_1, dnb_xlsx.CARD)
+    store.upsert_transactions(
+        con, rows, account_id=1, batch_id=new_batch(con, "bare"),
+        categoriser=categorise.categorise)
+    assert con.execute(
+        "SELECT COUNT(counterparty) FROM transactions").fetchone()[0] == 0
 
 
 def test_is_transfer_is_set_from_the_category_kind(con):

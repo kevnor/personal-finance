@@ -29,6 +29,19 @@ def test_pipeline_is_idempotent_across_runs(tmp_path):
     assert second["net"] == 14084.24
 
 
+def test_import_populates_counterparty_for_the_same_48_rows_as_the_legacy_db(
+        tmp_path):
+    """The standalone script extracted 48 counterparty values; the app
+    pipeline stored 0, because store never called extract_counterparty. The
+    count is the anchor: passing no extractor leaves every row NULL, and the
+    unit test in test_upsert.py checks the extracted values themselves."""
+    from server.lib import store
+    cli.build(tmp_path / "t.db", INPUT, MIGRATIONS)
+    con = store.connect(tmp_path / "t.db")
+    assert con.execute(
+        "SELECT COUNT(counterparty) FROM transactions").fetchone()[0] == 48
+
+
 def test_mortgage_row_is_split_into_three_derived_rows(tmp_path):
     from server.lib import store
     cli.build(tmp_path / "t.db", INPUT, MIGRATIONS)

@@ -110,11 +110,17 @@ def upsert_transactions(
     account_id: int,
     batch_id: int,
     categoriser: Callable[[str], "object"],
+    counterparty: Callable[[str], str | None] | None = None,
 ) -> tuple[int, int]:
     """Insert rows that are not already present. Additive and idempotent.
 
     Identity is scoped by account_id, not by the account's (mutable)
     display name — renaming an account must not re-duplicate its history.
+
+    `counterparty(description)` extracts the other party's name (a Vipps
+    recipient, say) for the counterparty column. Injected like `categoriser`
+    rather than imported, because that extraction is text semantics and this
+    module is persistence; when omitted the column is left NULL.
 
     Returns (inserted, skipped_existing).
     """
@@ -140,13 +146,14 @@ def upsert_transactions(
             "INSERT INTO transactions"
             " (date, account_id, description, amount, category_id,"
             "  is_transfer, needs_review, batch_id, source_row,"
-            "  fingerprint, occurrence, origin)"
-            " VALUES (?,?,?,?,?,?,?,?,?,?,?,'import')",
+            "  fingerprint, occurrence, counterparty, origin)"
+            " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,'import')",
             (row.date, account_id, row.description, row.amount,
              ids[verdict.category],
              1 if kinds[verdict.category] == "transfer" else 0,
              1 if verdict.needs_review else 0,
-             batch_id, row.source_row, fp, occurrence))
+             batch_id, row.source_row, fp, occurrence,
+             counterparty(row.description) if counterparty else None))
         inserted += 1
 
     con.commit()
