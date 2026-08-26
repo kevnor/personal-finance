@@ -174,11 +174,22 @@ def figures_from(envelope: float, spent_before_today: float,
 
 
 def _variable_spent(con: sqlite3.Connection, start: str, end: str) -> float:
-    """Net variable spending in [start, end]. Income nets against expense."""
+    """Net variable spending in [start, end].
+
+    `c.kind = 'expense'` is load-bearing, not decoration. Income categories
+    have no income-appropriate value in budget_treatment's CHECK list, so
+    Salary inherits the 'variable' default; without this predicate
+    SUM(-t.amount) books the salary as ~41 000 of *negative* spending and the
+    payday week reports money conjured out of nothing. Netting still works
+    where the spec wants it -- an incoming Vipps memoed `Mat` and the VY
+    refund both sit in expense categories, so their positive amounts still
+    reduce that category's spend.
+    """
     total = con.execute(
         "SELECT COALESCE(SUM(-t.amount), 0) FROM transactions t"
         " JOIN categories c ON c.id = t.category_id"
         " WHERE t.date >= ? AND t.date <= ? AND t.is_transfer = 0"
+        "   AND c.kind = 'expense'"
         "   AND COALESCE(t.budget_override, c.budget_treatment) = 'variable'",
         (start, end)).fetchone()[0]
     return round(total, 2)
