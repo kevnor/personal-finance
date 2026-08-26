@@ -5,6 +5,7 @@ import argparse
 import datetime
 from pathlib import Path
 
+from server import corrections
 from server.lib import budget, categorise, derive, rules, store
 from server.lib.ingest import dnb_xlsx
 
@@ -71,12 +72,18 @@ def build(db_path, input_dir, migrations_dir) -> dict:
         skipped += loan_dup
         derived += loan_made
 
+    # Applied on every import, not just once by hand: the two corrections
+    # change no amount, so the 181/14084.24 reconciliation cannot notice them
+    # missing. They are content-keyed and idempotent, so a run that has
+    # nothing to fix does nothing.
+    fixes = corrections.apply(con)
+
     count = con.execute("SELECT COUNT(*) FROM transactions").fetchone()[0]
     net = round(con.execute(
         "SELECT COALESCE(SUM(amount), 0) FROM transactions").fetchone()[0], 2)
     con.close()
     return {"inserted": inserted, "skipped": skipped, "derived": derived,
-            "net": net, "count": count}
+            "net": net, "count": count, "corrections": fixes}
 
 
 def reconcile(db_path) -> dict:
@@ -134,6 +141,10 @@ def main(argv: list[str] | None = None) -> int:
             print(f"  inserted {result['inserted']},"
                   f" already present {result['skipped']},"
                   f" derived {result['derived']}")
+            fixes = result["corrections"]
+            print(f"  corrections: {fixes['applied']} applied,"
+                  f" {fixes['already']} already in place,"
+                  f" {fixes['missing']} rows not present")
         else:
             result = reconcile(args.db)
             print(f"{result['count']} transactions, net {result['net']:.2f}")

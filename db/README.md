@@ -13,9 +13,23 @@ python3 -m server.cli import
 ```
 
 Additive and idempotent — safe to re-run, and re-importing an overlapping
-statement period is a no-op. Categorisation rules live in
-`server/lib/categorise.py`; per-transaction corrections are persisted in the
-`merchant_rules` table via `server/lib/rules.py`, not in code.
+statement period is a no-op.
+
+There are three places a categorisation can come from, and they are not
+interchangeable:
+
+| Where | What belongs there | Applies to |
+|---|---|---|
+| `server/lib/categorise.py` | Built-in pattern rules | Any row matching the pattern |
+| `merchant_rules` table (via `server/lib/rules.py`) | A mapping the user teaches by recategorising a row in the UI; wins over the built-in rules | Any future row matching the pattern |
+| `server/corrections.py` | One-off facts about *specific* payments that no pattern can express (decisions 7 and 8 below) | Exactly the rows it names |
+
+`merchant_rules` is empty in the live database today — nothing has been
+taught yet, since there is no UI. `server/corrections.py` is applied on every
+`import`, keyed on each row's own content and idempotent, so the corrections
+survive a fresh clone. They previously existed only as prose here plus a
+one-off `UPDATE`, which meant a rebuilt database quietly lacked them while
+still reconciling to 14 084,24 — neither correction changes the net.
 
 ## Files
 
@@ -108,13 +122,17 @@ by date+amount alone would silently discard real repeated spending. See
    marking a debt says nothing about whether the category itself is right.
 
 One-off corrections that a rule cannot express — because they depend on
-context no description carries, like decisions 7 and 8 above — are applied
-directly against the built database rather than by editing
-`server/lib/categorise.py`. Decision 8 uses `rules.mark_reimbursable`, which
-records a debt against a specific transaction id. Decision 7 targets two
-specific transaction ids directly with `UPDATE`, since it reassigns a
-category by hand-identified context rather than by a pattern that should
-apply to any future matching row — a merchant pattern (`rules.teach`) would
-be the wrong tool here, since `Bok` genuinely does mean Books most of the
-time. Either way the correction is persisted state, not code, so it survives
-a rebuild without needing to be re-run.
+context no description carries, like decisions 7 and 8 above — live in
+`server/corrections.py` and are applied by every `import`. Decision 8 uses
+`rules.mark_reimbursable`, which records a debt against a specific
+transaction. Decision 7 reassigns two named rows' categories directly. A
+merchant pattern (`rules.teach`) would be the wrong tool for either, since
+`Bok` genuinely does mean Books most of the time and Hoome genuinely is a
+furniture merchant — the correction is about these particular payments, not
+about future ones.
+
+Each correction is keyed on its row's own content (date, description,
+amount) rather than a row id, because ids are assigned by insertion order
+and mean nothing across databases. Re-applying is a no-op, and `import`
+reports how many were applied, were already in place, or named rows this
+database does not hold.
