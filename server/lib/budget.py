@@ -100,12 +100,27 @@ def month_pool(con: sqlite3.Connection, month: str, config: Config) -> Pool:
     else:
         fixed = config.manual_fixed or 0.0
 
-    committed = con.execute(
-        "SELECT COALESCE(SUM(ABS(t.amount)), 0) FROM transactions t"
-        " JOIN categories c ON c.id = t.category_id"
-        " WHERE c.kind = 'transfer' AND c.cash_treatment = 'committed'"
-        "   AND substr(t.date, 1, 7) = ?", (month,)).fetchone()[0]
-    committed = round(committed, 2)
+    # Committed transfers are an EXPECTED value like income and fixed, so
+    # they must be averaged over the same complete months. Summing the target
+    # month's own rows instead made the pool drop the day the mortgage
+    # principal posted -- 22650.07 to 19242.81, a ~795 kr/week envelope cut
+    # from one row -- which is precisely the mid-month collapse the spec's
+    # "Expected vs actual" section warns against.
+    committed_where = ("c.kind = 'transfer'"
+                       " AND c.cash_treatment = 'committed'")
+    if months:
+        committed = _monthly_average(con, months, committed_where)
+    else:
+        # Cold start: no complete month to average. Fall back to the target
+        # month's own committed rows, the same shape of fallback income and
+        # fixed make to their manual figures -- there is no manual_committed
+        # (debt instalments are fixed by contract, so the spec gives them no
+        # override), and Pool.estimated is already True on this branch.
+        committed = round(con.execute(
+            "SELECT COALESCE(SUM(ABS(t.amount)), 0) FROM transactions t"
+            " JOIN categories c ON c.id = t.category_id"
+            f" WHERE {committed_where} AND substr(t.date, 1, 7) = ?",
+            (month,)).fetchone()[0], 2)
 
     amount = round(income - fixed - committed - config.savings_target, 2)
     return Pool(income, fixed, committed, config.savings_target,

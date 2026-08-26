@@ -135,6 +135,151 @@ def test_derived_average_excludes_months_after_the_target(con):
     assert pool.income == 10000.01
 
 
+def complete_month(con, month, days, extra=()):
+    """Give `month` transactions on day 1 and its last day so
+    complete_months() accepts it, plus any extra rows."""
+    add(con, f"{month}-01", "Groceries", -1.0)
+    add(con, f"{month}-{days:02d}", "Groceries", -1.0)
+    for date, category, amount in extra:
+        add(con, date, category, amount)
+
+
+# -- expected_committed is a trailing average, not the month's own rows ----
+
+def test_pool_does_not_collapse_when_the_mortgage_posts(con):
+    """The pool must be identical before and after the month's mortgage row.
+
+    Summing committed transfers from the target month made the pool drop the
+    day the principal posted: 22650.07 -> 19242.81, daily 755.00 -> 641.43,
+    roughly 795 kr off the weekly envelope from a single row. The spec is
+    explicit that actual spending is measured against a pool held fixed for
+    the month, "or the budget would collapse mid-month".
+    """
+    complete_month(con, "2026-08", 31, extra=[
+        ("2026-08-05", "Mortgage - principal", -3407.26),
+        ("2026-08-27", "Employer loan repayment", -800.0)])
+    cfg = budget.load_config(con, datetime.date(2026, 9, 15))
+
+    before = budget.month_pool(con, "2026-09", cfg)
+    add(con, "2026-09-20", "Mortgage - principal", -3407.26)
+    after = budget.month_pool(con, "2026-09", cfg)
+
+    assert before.committed == after.committed == 4207.26
+    assert before.amount == after.amount == 18442.81
+    sept = datetime.date(2026, 9, 21)
+    assert (budget.daily_rate({"2026-09": before}, sept)
+            == budget.daily_rate({"2026-09": after}, sept))
+
+
+def test_committed_is_averaged_across_the_complete_months(con):
+    """Two complete months, 3407.26 committed in one and 4207.26 in the
+    other, must give the mean rather than either month's own total."""
+    complete_month(con, "2026-06", 30, extra=[
+        ("2026-06-05", "Mortgage - principal", -3407.26)])
+    complete_month(con, "2026-07", 31, extra=[
+        ("2026-07-05", "Mortgage - principal", -3407.26),
+        ("2026-07-27", "Employer loan repayment", -800.0)])
+    cfg = budget.load_config(con, datetime.date(2026, 8, 15))
+    assert budget.month_pool(con, "2026-08", cfg).committed == 3807.26
+
+
+def test_committed_average_excludes_settlement_and_savings_transfers(con):
+    """Only cash_treatment='committed' counts; a card payment in the trailing
+    month must not reduce the pool, or roughly 27 000 is double-counted."""
+    complete_month(con, "2026-06", 30, extra=[
+        ("2026-06-05", "Credit card payment", -4982.80),
+        ("2026-06-06", "Internal transfer", -16000.0),
+        ("2026-06-07", "Mortgage - principal", -3407.26)])
+    cfg = budget.load_config(con, datetime.date(2026, 7, 15))
+    assert budget.month_pool(con, "2026-07", cfg).committed == 3407.26
+
+
+def test_committed_average_ignores_months_after_the_target(con):
+    """The same trailing-window rule income and fixed obey: a complete
+    September must not feed a pool computed for February."""
+    complete_month(con, "2026-01", 31, extra=[
+        ("2026-01-05", "Mortgage - principal", -1000.0)])
+    complete_month(con, "2026-09", 30, extra=[
+        ("2026-09-05", "Mortgage - principal", -9000.0)])
+    cfg = budget.load_config(con, datetime.date(2026, 2, 15))
+    assert budget.month_pool(con, "2026-02", cfg).committed == 1000.0
+
+
+def test_committed_cold_start_uses_the_target_months_own_rows(con):
+    """With no complete month there is nothing to average and no
+    manual_committed to fall back on, so the month's own committed rows are
+    the only figure available -- and the pool is flagged estimated."""
+    add(con, "2026-07-20", "Mortgage - principal", -3407.26)
+    add(con, "2026-07-27", "Employer loan repayment", -800.0)
+    add(con, "2026-08-15", "Mortgage - principal", -3407.26)
+    cfg = budget.load_config(con, datetime.date(2026, 7, 15))
+    pool = budget.month_pool(con, "2026-07", cfg)
+    assert pool.estimated is True
+    assert pool.committed == 4207.26      # August's row must not leak in
+
+
+# -- the derived half of the pool formula ----------------------------------
+
+def test_derived_fixed_averages_only_fixed_treatment_expenses(con):
+    """fixed_mode='derived' must count expenses whose effective treatment is
+    'fixed' and nothing else. Counting every expense as fixed passed the
+    whole suite before this test existed, because the only derived-fixed
+    case was the cold start where the predicate never runs.
+    """
+    con.execute("UPDATE budget_config SET fixed_mode='derived'")
+    con.commit()
+    complete_month(con, "2026-06", 30, extra=[
+        ("2026-06-03", "Mortgage - interest", -9816.49),   # fixed
+        ("2026-06-04", "Groceries", -2500.0),              # variable
+        ("2026-06-05", "Mortgage - principal", -3407.26),  # transfer
+        ("2026-06-06", "Salary", 41113.67)])               # income
+    cfg = budget.load_config(con, datetime.date(2026, 7, 15))
+    pool = budget.month_pool(con, "2026-07", cfg)
+    assert pool.estimated is False
+    assert pool.fixed == 9816.49
+
+
+def test_derived_fixed_honours_a_per_transaction_override(con):
+    """Groceries default to variable; an override of 'fixed' must be counted,
+    and an override of 'variable' on a fixed category must not be."""
+    con.execute("UPDATE budget_config SET fixed_mode='derived'")
+    con.commit()
+    complete_month(con, "2026-06", 30)
+    cid = con.execute(
+        "SELECT id FROM categories WHERE name = 'Groceries'").fetchone()[0]
+    con.execute(
+        "INSERT INTO transactions (date, account_id, description, amount,"
+        " category_id, is_transfer, budget_override, batch_id, source_row,"
+        " fingerprint, occurrence)"
+        " VALUES ('2026-06-10',1,'standing order',-500.0,?,0,'fixed',1,900,"
+        "'fp900',1)", (cid,))
+    ifix = con.execute(
+        "SELECT id FROM categories WHERE name = 'Mortgage - interest'"
+    ).fetchone()[0]
+    con.execute(
+        "INSERT INTO transactions (date, account_id, description, amount,"
+        " category_id, is_transfer, budget_override, batch_id, source_row,"
+        " fingerprint, occurrence)"
+        " VALUES ('2026-06-11',1,'one-off',-7000.0,?,0,'variable',1,901,"
+        "'fp901',1)", (ifix,))
+    con.commit()
+    cfg = budget.load_config(con, datetime.date(2026, 7, 15))
+    assert budget.month_pool(con, "2026-07", cfg).fixed == 500.0
+
+
+def test_derived_average_divides_by_the_number_of_months(con):
+    """Two complete months of 1000 each average to 1000, not 2000 -- the
+    divisor is what makes it an average rather than a running total."""
+    con.execute("UPDATE budget_config SET income_mode='derived'")
+    con.commit()
+    complete_month(con, "2026-06", 30, extra=[
+        ("2026-06-15", "Salary", 1000.0)])
+    complete_month(con, "2026-07", 31, extra=[
+        ("2026-07-15", "Salary", 1000.0)])
+    cfg = budget.load_config(con, datetime.date(2026, 8, 15))
+    assert budget.month_pool(con, "2026-08", cfg).income == 1000.0
+
+
 def test_load_config_breaks_ties_on_same_effective_from(con):
     """A same-day correction must win over the row it corrects.
 
