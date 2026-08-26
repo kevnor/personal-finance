@@ -5,7 +5,7 @@ import argparse
 import datetime
 from pathlib import Path
 
-from server.lib import categorise, derive, rules, store
+from server.lib import budget, categorise, derive, rules, store
 from server.lib.ingest import dnb_xlsx
 
 SOURCES = [
@@ -31,6 +31,7 @@ def build(db_path, input_dir, migrations_dir) -> dict:
         categorise.CATEGORIES,
         categorise.TREATMENTS,
         [(account, kind) for _, account, kind, _ in SOURCES])
+    budget.seed_default_config(con)
 
     learned = rules.learned_map(con)
     accounts = {r["name"]: r["id"]

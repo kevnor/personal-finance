@@ -40,6 +40,15 @@ def con(tmp_path_factory):
     return store.connect(db)
 
 
+def test_a_freshly_built_database_is_usable_on_first_run(con):
+    """load_config raised LookupError on every real database, because nothing
+    ever created a budget_config row -- the spec's Cold start section says the
+    app is broken on first run without one. CONFIG above is asserted to be
+    exactly what import seeds, so the rest of this module measures the real
+    configuration rather than a test-local guess."""
+    assert budget.load_config(con, datetime.date(2026, 7, 24)) == CONFIG
+
+
 def week_spent(con, monday: str) -> float:
     start = datetime.date.fromisoformat(monday)
     end = start + datetime.timedelta(days=6)

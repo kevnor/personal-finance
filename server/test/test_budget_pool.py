@@ -294,3 +294,53 @@ def test_load_config_breaks_ties_on_same_effective_from(con):
     con.commit()
     cfg = budget.load_config(con, datetime.date(2026, 1, 15))
     assert cfg.manual_income == 9999.0
+
+
+# -- cold-start seeding ---------------------------------------------------
+
+def test_seed_default_config_makes_load_config_work_on_a_fresh_database(
+        tmp_path):
+    """No budget_config row was ever created, so load_config raised
+    LookupError on every real database -- the spec's Cold start section says
+    that without seeded manual figures "the app is broken on first run"."""
+    c = store.connect(tmp_path / "fresh.db")
+    store.migrate(c, MIGRATIONS)
+    with pytest.raises(LookupError):
+        budget.load_config(c, datetime.date(2026, 7, 15))
+
+    assert budget.seed_default_config(c) is True
+    cfg = budget.load_config(c, datetime.date(2026, 7, 15))
+    assert (cfg.income_mode, cfg.fixed_mode) == ("manual", "manual")
+    assert cfg.manual_income == 41113.67
+    assert cfg.manual_fixed == 13463.60
+    assert cfg.savings_target == 5000.0
+    assert cfg.week_starts_on == 1
+
+
+def test_seeded_config_reproduces_the_spec_worked_example(tmp_path):
+    c = store.connect(tmp_path / "fresh.db")
+    store.migrate(c, MIGRATIONS)
+    budget.seed_default_config(c)
+    cfg = budget.load_config(c, datetime.date(2026, 7, 15))
+    assert budget.month_pool(c, "2026-07", cfg).amount == 22650.07
+
+
+def test_seed_default_config_covers_the_earliest_statement_date(tmp_path):
+    """effective_from must precede the data, or the first weeks have no
+    config in force at all."""
+    c = store.connect(tmp_path / "fresh.db")
+    store.migrate(c, MIGRATIONS)
+    budget.seed_default_config(c)
+    budget.load_config(c, datetime.date(2026, 6, 10))   # earliest card row
+
+
+def test_seed_default_config_never_overwrites_an_existing_row(con):
+    """Any existing row is the user's own configuration; re-seeding over it
+    would silently revert a changed savings target."""
+    con.execute("UPDATE budget_config SET savings_target = 8000.0")
+    con.commit()
+    assert budget.seed_default_config(con) is False
+    assert budget.load_config(
+        con, datetime.date(2026, 7, 15)).savings_target == 8000.0
+    assert con.execute(
+        "SELECT COUNT(*) FROM budget_config").fetchone()[0] == 1

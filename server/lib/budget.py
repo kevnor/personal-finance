@@ -35,6 +35,46 @@ class Pool:
     estimated: bool
 
 
+# Cold-start configuration, from the spec's "Worked example" and "Cold start"
+# sections: there is no complete calendar month of data yet (the bank
+# statement starts 30 June and the card statements are partial), so both
+# modes are manual and switch to derived once a full month exists. The spec
+# is explicit that without these seeded figures "the app is broken on first
+# run" -- and load_config raises LookupError on an unseeded database, which
+# is precisely how it was broken.
+DESIGN_CONFIG = {
+    "effective_from": "2026-01-01",   # before any statement row (2026-06-10)
+    "income_mode": "manual",
+    "fixed_mode": "manual",
+    "manual_income": 41113.67,        # salary
+    "manual_fixed": 13463.60,         # fixed expenses
+    "savings_target": 5000.0,         # illustrative pending first-run prompt
+    "week_starts_on": 1,              # Monday, ISO and Norwegian convention
+}
+
+
+def seed_default_config(con: sqlite3.Connection,
+                        values: Mapping[str, object] | None = None) -> bool:
+    """Insert the cold-start budget_config row if none exists at all.
+
+    Returns True if a row was written. Deliberately does nothing when the
+    table is non-empty: any existing row is the user's own configuration (or
+    a versioned history of it), and re-seeding over that would silently
+    revert a changed savings target or salary. Versioning by effective_from
+    means past weeks must not recompute.
+    """
+    if con.execute("SELECT 1 FROM budget_config LIMIT 1").fetchone():
+        return False
+    values = dict(DESIGN_CONFIG if values is None else values)
+    con.execute(
+        "INSERT INTO budget_config (effective_from, income_mode, fixed_mode,"
+        " manual_income, manual_fixed, savings_target, week_starts_on)"
+        " VALUES (:effective_from, :income_mode, :fixed_mode, :manual_income,"
+        " :manual_fixed, :savings_target, :week_starts_on)", values)
+    con.commit()
+    return True
+
+
 def load_config(con: sqlite3.Connection, on_date: datetime.date) -> Config:
     row = con.execute(
         "SELECT * FROM budget_config WHERE effective_from <= ?"
