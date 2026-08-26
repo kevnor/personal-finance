@@ -113,3 +113,39 @@ def test_config_versioning_picks_the_row_in_force(con):
 def test_complete_months_excludes_partial_coverage(con):
     add(con, "2026-07-20", "Groceries", -100.0)
     assert "2026-07" not in budget.complete_months(con)
+
+
+def test_derived_average_excludes_months_after_the_target(con):
+    """The trailing average must not look forward.
+
+    A complete September must never feed a pool computed for January, even
+    though both are 'complete' months in the data — otherwise importing
+    future statements would silently change a past estimate, and asking for
+    the same past month again later could give a different answer.
+    """
+    con.execute("UPDATE budget_config SET income_mode='derived'")
+    con.commit()
+    add(con, "2026-01-01", "Salary", 5000.0)
+    add(con, "2026-01-31", "Salary", 5000.01)
+    add(con, "2026-09-01", "Salary", 50000.0)
+    add(con, "2026-09-29", "Salary", 50000.01)
+    cfg = budget.load_config(con, datetime.date(2026, 1, 15))
+    pool = budget.month_pool(con, "2026-01", cfg)
+    assert pool.estimated is False
+    assert pool.income == 10000.01
+
+
+def test_load_config_breaks_ties_on_same_effective_from(con):
+    """A same-day correction must win over the row it corrects.
+
+    Two budget_config rows sharing an effective_from date represent someone
+    fixing a mistake the same day, not two independent versions — the most
+    recently inserted row must be picked, not an arbitrary one.
+    """
+    con.execute(
+        "INSERT INTO budget_config (effective_from, income_mode, fixed_mode,"
+        " manual_income, manual_fixed, savings_target)"
+        " VALUES ('2026-01-01','manual','manual', 9999.0, 13463.60, 5000.0)")
+    con.commit()
+    cfg = budget.load_config(con, datetime.date(2026, 1, 15))
+    assert cfg.manual_income == 9999.0

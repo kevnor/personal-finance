@@ -37,7 +37,7 @@ class Pool:
 def load_config(con: sqlite3.Connection, on_date: datetime.date) -> Config:
     row = con.execute(
         "SELECT * FROM budget_config WHERE effective_from <= ?"
-        " ORDER BY effective_from DESC LIMIT 1",
+        " ORDER BY effective_from DESC, id DESC LIMIT 1",
         (on_date.isoformat(),)).fetchone()
     if row is None:
         raise LookupError(f"no budget_config in force on {on_date}")
@@ -81,7 +81,9 @@ def _monthly_average(con: sqlite3.Connection, months: list[str],
 
 
 def month_pool(con: sqlite3.Connection, month: str, config: Config) -> Pool:
-    months = complete_months(con)
+    # Trailing average: only months at or before the target month feed the
+    # average, so importing future data never changes a past estimate.
+    months = [m for m in complete_months(con) if m <= month]
     estimated = not months
 
     if config.income_mode == "derived" and months:
