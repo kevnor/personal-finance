@@ -11,6 +11,7 @@ from __future__ import annotations
 import calendar
 import datetime
 import sqlite3
+from collections.abc import Mapping
 from dataclasses import dataclass
 
 
@@ -109,3 +110,86 @@ def month_pool(con: sqlite3.Connection, month: str, config: Config) -> Pool:
     amount = round(income - fixed - committed - config.savings_target, 2)
     return Pool(income, fixed, committed, config.savings_target,
                 amount, estimated)
+
+
+@dataclass(frozen=True)
+class Figures:
+    week_envelope: float
+    week_spent: float
+    week_remaining: float
+    today_allowance: float
+    today_spent: float
+    today_remaining: float
+    days_left: int
+
+
+def week_bounds(day: datetime.date,
+                week_starts_on: int = 1) -> tuple[datetime.date, datetime.date]:
+    """week_starts_on: 1 = Monday, matching ISO and Norwegian convention."""
+    offset = (day.isoweekday() - week_starts_on) % 7
+    start = day - datetime.timedelta(days=offset)
+    return start, start + datetime.timedelta(days=6)
+
+
+def daily_rate(pools: Mapping[str, Pool], day: datetime.date) -> float:
+    month = day.strftime("%Y-%m")
+    pool = pools.get(month)
+    if pool is None:
+        return 0.0
+    return pool.amount / calendar.monthrange(day.year, day.month)[1]
+
+
+def week_envelope(pools: Mapping[str, Pool],
+                  week_start: datetime.date) -> float:
+    """Sum each day's own rate.
+
+    Picking one month's rate for the whole week makes the last week of a
+    month disagree with the first week of the next about what a day is worth.
+    """
+    return round(sum(
+        daily_rate(pools, week_start + datetime.timedelta(days=i))
+        for i in range(7)), 2)
+
+
+def figures_from(envelope: float, spent_before_today: float,
+                 spent_today: float, days_left: int) -> Figures:
+    """Today's allowance is fixed when the day starts.
+
+    Dividing (envelope - spent_including_today) by days_left would report
+    money already spent today as still available. Excluding today's spend
+    from the numerator while counting today in days_left avoids that: the
+    allowance is stable through the day, overspend shows as a negative
+    remainder, and tomorrow recalculates from what is genuinely left.
+    """
+    allowance = (envelope - spent_before_today) / max(days_left, 1)
+    week_spent = spent_before_today + spent_today
+    return Figures(
+        week_envelope=round(envelope, 2),
+        week_spent=round(week_spent, 2),
+        week_remaining=round(envelope - week_spent, 2),
+        today_allowance=round(allowance, 2),
+        today_spent=round(spent_today, 2),
+        today_remaining=round(allowance - spent_today, 2),
+        days_left=days_left)
+
+
+def _variable_spent(con: sqlite3.Connection, start: str, end: str) -> float:
+    """Net variable spending in [start, end]. Income nets against expense."""
+    total = con.execute(
+        "SELECT COALESCE(SUM(-t.amount), 0) FROM transactions t"
+        " JOIN categories c ON c.id = t.category_id"
+        " WHERE t.date >= ? AND t.date <= ? AND t.is_transfer = 0"
+        "   AND COALESCE(t.budget_override, c.budget_treatment) = 'variable'",
+        (start, end)).fetchone()[0]
+    return round(total, 2)
+
+
+def figures(con: sqlite3.Connection, day: datetime.date, config: Config,
+            pools: Mapping[str, Pool]) -> Figures:
+    start, end = week_bounds(day, config.week_starts_on)
+    envelope = week_envelope(pools, start)
+    before = _variable_spent(
+        con, start.isoformat(),
+        (day - datetime.timedelta(days=1)).isoformat()) if day > start else 0.0
+    today = _variable_spent(con, day.isoformat(), day.isoformat())
+    return figures_from(envelope, before, today, (end - day).days + 1)
