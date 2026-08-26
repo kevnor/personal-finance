@@ -1,6 +1,8 @@
 import sqlite3
 from pathlib import Path
 
+import pytest
+
 from server.lib import store
 from server.lib import ingest
 from server.lib.ingest import dnb_xlsx, fingerprint
@@ -38,6 +40,89 @@ def test_migrate_applies_baseline_then_is_idempotent(tmp_path):
 
     second = store.migrate(con, MIGRATIONS)
     assert second == []
+
+
+def _migrations_with(tmp_path, name, sql):
+    """A migrations directory holding 001_baseline plus one extra script."""
+    directory = tmp_path / "migrations"
+    directory.mkdir(exist_ok=True)
+    (directory / "001_baseline.sql").write_text(
+        (MIGRATIONS / "001_baseline.sql").read_text(encoding="utf-8"),
+        encoding="utf-8")
+    (directory / name).write_text(sql, encoding="utf-8")
+    return directory
+
+
+def test_a_failing_migration_is_rolled_back_whole(tmp_path):
+    """A mid-script failure used to leave the statements before it applied
+    (SQLite autocommits each one) but unrecorded, so every later migrate()
+    re-ran the script and died on `duplicate column name` -- unrecoverable
+    without hand surgery. Each script must apply or not at all."""
+    directory = _migrations_with(
+        tmp_path, "002_half_bad.sql",
+        "ALTER TABLE categories ADD COLUMN half_applied TEXT;\n"
+        "THIS IS NOT VALID SQL;\n")
+    con = store.connect(tmp_path / "t.db")
+
+    with pytest.raises(sqlite3.OperationalError):
+        store.migrate(con, directory)
+
+    columns = {r["name"] for r in con.execute("PRAGMA table_info(categories)")}
+    assert "half_applied" not in columns
+    recorded = {r["name"] for r in con.execute(
+        "SELECT name FROM schema_migrations")}
+    assert recorded == {"001_baseline.sql"}   # the script that did succeed
+
+
+def test_migrate_recovers_once_a_failing_script_is_fixed(tmp_path):
+    """The recovery the old behaviour denied: fix the script, run again."""
+    directory = _migrations_with(
+        tmp_path, "002_half_bad.sql",
+        "ALTER TABLE categories ADD COLUMN half_applied TEXT;\n"
+        "THIS IS NOT VALID SQL;\n")
+    con = store.connect(tmp_path / "t.db")
+    with pytest.raises(sqlite3.OperationalError):
+        store.migrate(con, directory)
+
+    (directory / "002_half_bad.sql").write_text(
+        "ALTER TABLE categories ADD COLUMN half_applied TEXT;\n",
+        encoding="utf-8")
+    assert store.migrate(con, directory) == ["002_half_bad.sql"]
+    columns = {r["name"] for r in con.execute("PRAGMA table_info(categories)")}
+    assert "half_applied" in columns
+
+
+def test_a_script_and_its_migration_record_commit_together(tmp_path):
+    """The record cannot lag the DDL: a script that succeeds is recorded in
+    the same transaction, so there is no window where a crash leaves applied
+    DDL unrecorded."""
+    directory = _migrations_with(
+        tmp_path, "002_ok.sql",
+        "ALTER TABLE categories ADD COLUMN extra TEXT;\n")
+    con = store.connect(tmp_path / "t.db")
+    store.migrate(con, directory)
+
+    # Read through a second connection: only committed state is visible.
+    other = store.connect(tmp_path / "t.db")
+    assert {r["name"] for r in other.execute(
+        "SELECT name FROM schema_migrations")} == {
+            "001_baseline.sql", "002_ok.sql"}
+    assert "extra" in {r["name"] for r in other.execute(
+        "PRAGMA table_info(categories)")}
+
+
+def test_a_migration_name_with_a_quote_is_recorded_safely(tmp_path):
+    """The migration name is inlined into the script (executescript takes no
+    parameters), so it must be quoted rather than concatenated raw."""
+    directory = _migrations_with(
+        tmp_path, "002_it's fine.sql",
+        "ALTER TABLE categories ADD COLUMN quoted TEXT;\n")
+    con = store.connect(tmp_path / "t.db")
+    assert "002_it's fine.sql" in store.migrate(con, directory)
+    assert {r["name"] for r in con.execute(
+        "SELECT name FROM schema_migrations")} == {
+            "001_baseline.sql", "002_it's fine.sql"}
+    assert store.migrate(con, directory) == []   # still idempotent
 
 
 def test_connect_enables_foreign_keys(tmp_path):

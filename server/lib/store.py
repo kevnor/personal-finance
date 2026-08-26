@@ -32,11 +32,34 @@ def connect(path: str | Path, read_only: bool = False) -> sqlite3.Connection:
     return con
 
 
+def _sql_literal(value: str) -> str:
+    """Quote a string for embedding in a script.
+
+    executescript takes no parameters, and the migration's record has to live
+    inside the same transaction as its DDL, so this one value is inlined.
+    """
+    return "'" + value.replace("'", "''") + "'"
+
+
 def migrate(con: sqlite3.Connection, migrations_dir: str | Path) -> list[str]:
-    """Apply every unapplied migration in filename order. Returns names applied."""
+    """Apply every unapplied migration in filename order. Returns names applied.
+
+    Each script runs in its own transaction, together with the row recording
+    it, and is rolled back as a unit if any statement fails. Without that, a
+    mid-script failure left the statements before it applied (SQLite
+    autocommits each one) but unrecorded, so every later migrate() re-ran the
+    script and died on `duplicate column name` with no recovery short of hand
+    surgery on the schema. DDL is transactional in SQLite, which is what
+    makes the rollback complete.
+
+    BEGIN and COMMIT are part of the script text on purpose: executescript
+    commits any pending transaction before it runs, so a transaction opened
+    around the call would be discarded rather than honoured.
+    """
     con.execute(
         "CREATE TABLE IF NOT EXISTS schema_migrations ("
         " name TEXT PRIMARY KEY, applied_at TEXT NOT NULL)")
+    con.commit()
     done = {r["name"] for r in con.execute("SELECT name FROM schema_migrations")}
 
     applied: list[str] = []
@@ -44,12 +67,18 @@ def migrate(con: sqlite3.Connection, migrations_dir: str | Path) -> list[str]:
     for path in sorted(Path(migrations_dir).glob("*.sql")):
         if path.name in done:
             continue
-        con.executescript(path.read_text(encoding="utf-8"))
-        con.execute(
-            "INSERT INTO schema_migrations (name, applied_at) VALUES (?, ?)",
-            (path.name, now))
+        script = (
+            "BEGIN;\n"
+            + path.read_text(encoding="utf-8")
+            + "\nINSERT INTO schema_migrations (name, applied_at) VALUES ("
+            + _sql_literal(path.name) + ", " + _sql_literal(now) + ");\n"
+            "COMMIT;\n")
+        try:
+            con.executescript(script)
+        except Exception:
+            con.rollback()
+            raise
         applied.append(path.name)
-    con.commit()
     return applied
 
 
