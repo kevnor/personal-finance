@@ -92,3 +92,30 @@ def test_bok_memo_glued_to_tpp_suffix_matches_books():
     assert categorise.categorise(
         "Overføring  4699999999 Vetle Nyhus Dahl BokTpp: Vipps"
     ).category == "Books"
+
+
+def test_unsplit_loan_term_is_categorised_and_treated_as_fixed():
+    """The ^l.n\\b|avdrag rule had no coverage anywhere, and its category was
+    missing from TREATMENTS -- so it inherited the schema's 'variable'
+    default. Nothing lands there today because the one loan line splits, but
+    a statement whose itemisation `derive` cannot parse would put the whole
+    ~13 288 kr term into a single week's envelope."""
+    v = categorise.categorise("Lån  12345678901 Avdrag Og Renter")
+    assert v.category == "Mortgage & loan"
+    assert v.needs_review is True
+    assert categorise.TREATMENTS[v.category] == ("fixed", "settlement")
+
+
+def test_categories_that_must_not_fall_back_to_variable_are_listed():
+    """A category absent from TREATMENTS silently takes budget_treatment =
+    'variable', i.e. it lands in the weekly envelope. That default is right
+    for groceries and wrong for a loan term, and the difference is invisible
+    until the money is counted."""
+    treatment = {
+        name: categorise.TREATMENTS.get(name, ("variable", "settlement"))[0]
+        for name, _kind in categorise.CATEGORIES}
+    assert treatment["Mortgage & loan"] == "fixed"
+    assert treatment["Student loan"] == "fixed"
+    assert treatment["Mortgage - interest"] == "fixed"
+    assert treatment["Mortgage - fees"] == "fixed"
+    assert treatment["Groceries"] == "variable"

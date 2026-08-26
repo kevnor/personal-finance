@@ -121,6 +121,12 @@ TREATMENTS: dict[str, tuple[str, str]] = {
     "Insurance":               ("fixed", "settlement"),
     "Gym & fitness":           ("fixed", "settlement"),
     "Subscriptions":           ("fixed", "settlement"),
+    # The catch-all for a loan term whose itemisation `derive` could not
+    # parse. Today nothing lands here -- the one loan line splits into
+    # interest/principal/fee -- but a future statement wording the split
+    # differently would otherwise drop ~13 288 kr straight into one week's
+    # variable envelope, on the schema default.
+    "Mortgage & loan":         ("fixed", "settlement"),
     # Large one-offs: tracked separately, not against the weekly envelope.
     "Home & furniture":        ("exceptional", "settlement"),
     "Sports & outdoor":        ("exceptional", "settlement"),
