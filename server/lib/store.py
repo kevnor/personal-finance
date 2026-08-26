@@ -74,11 +74,13 @@ def upsert_transactions(
     con: sqlite3.Connection,
     rows: Iterable[RawRow],
     account_id: int,
-    account_name: str,
     batch_id: int,
     categoriser: Callable[[str], "object"],
 ) -> tuple[int, int]:
     """Insert rows that are not already present. Additive and idempotent.
+
+    Identity is scoped by account_id, not by the account's (mutable)
+    display name — renaming an account must not re-duplicate its history.
 
     Returns (inserted, skipped_existing).
     """
@@ -87,8 +89,9 @@ def upsert_transactions(
     ids = {r["name"]: r["id"]
            for r in con.execute("SELECT id, name FROM categories")}
 
+    account_key = str(account_id)
     inserted = skipped = 0
-    for row, fp, occurrence in with_identity(list(rows), account_name):
+    for row, fp, occurrence in with_identity(list(rows), account_key):
         exists = con.execute(
             "SELECT 1 FROM transactions"
             " WHERE account_id = ? AND fingerprint = ? AND occurrence = ?"

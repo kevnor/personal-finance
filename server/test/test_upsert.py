@@ -24,13 +24,17 @@ def con(tmp_path):
     return c
 
 
-def load(con, path, label="f"):
-    batch = con.execute(
+def new_batch(con, label="f"):
+    return con.execute(
         "INSERT INTO import_batches (source_file, row_count, imported_at)"
         " VALUES (?, 0, '2026-08-22')", (label,)).lastrowid
+
+
+def load(con, path, label="f"):
+    batch = new_batch(con, label)
     rows = dnb_xlsx.read_statement(path, dnb_xlsx.CARD)
     return store.upsert_transactions(
-        con, rows, account_id=1, account_name="Kredittkort",
+        con, rows, account_id=1,
         batch_id=batch, categoriser=categorise.categorise)
 
 
@@ -72,9 +76,42 @@ def test_non_overlapping_periods_both_load_fully(con):
     assert count(con) == 56
 
 
+def test_partial_reimport_inserts_only_the_new_rows(con):
+    """The case most likely to regress: a re-export that overlaps the
+    previous import partway through must add only the unseen rows."""
+    rows = dnb_xlsx.read_statement(CARD_1, dnb_xlsx.CARD)
+    batch = new_batch(con)
+    assert store.upsert_transactions(
+        con, rows[:38], account_id=1, batch_id=batch,
+        categoriser=categorise.categorise) == (38, 0)
+    assert store.upsert_transactions(
+        con, rows, account_id=1, batch_id=batch,
+        categoriser=categorise.categorise) == (5, 38)
+    assert count(con) == 43
+
+
 def test_categories_are_assigned_on_insert(con):
     load(con, CARD_1)
     uncategorised = con.execute(
         "SELECT COUNT(*) FROM transactions WHERE category_id IS NULL"
     ).fetchone()[0]
     assert uncategorised == 0
+
+
+def test_stored_row_metadata_matches_the_import(con):
+    """A regression in origin, batch_id, is_transfer, or fingerprint would
+    otherwise pass the whole suite unnoticed."""
+    batch = new_batch(con, "meta")
+    rows = dnb_xlsx.read_statement(CARD_1, dnb_xlsx.CARD)
+    inserted, _ = store.upsert_transactions(
+        con, rows, account_id=1, batch_id=batch,
+        categoriser=categorise.categorise)
+
+    stored = con.execute(
+        "SELECT origin, batch_id, is_transfer, fingerprint"
+        " FROM transactions").fetchall()
+    assert len(stored) == inserted == 43
+    assert all(r["origin"] == "import" for r in stored)
+    assert all(r["batch_id"] == batch for r in stored)
+    assert all(r["is_transfer"] in (0, 1) for r in stored)
+    assert all(r["fingerprint"] != "" for r in stored)

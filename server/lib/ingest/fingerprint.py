@@ -16,19 +16,19 @@ from collections import defaultdict
 from server.lib.ingest.dnb_xlsx import RawRow
 
 
-def fingerprint(account: str, date: str, description: str,
+def fingerprint(account_key: str, date: str, description: str,
                 amount: float) -> str:
     payload = "\x1f".join(
-        (account, date, description.strip(), f"{amount:.2f}"))
+        (account_key, date, description.strip(), f"{amount:.2f}"))
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:16]
 
 
 def with_identity(rows: list[RawRow],
-                  account: str) -> list[tuple[RawRow, str, int]]:
+                  account_key: str) -> list[tuple[RawRow, str, int]]:
     seen: dict[str, int] = defaultdict(int)
     out: list[tuple[RawRow, str, int]] = []
     for row in rows:
-        fp = fingerprint(account, row.date, row.description, row.amount)
+        fp = fingerprint(account_key, row.date, row.description, row.amount)
         seen[fp] += 1
         out.append((row, fp, seen[fp]))
     return out
