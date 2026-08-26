@@ -16,6 +16,13 @@ SOURCES = [
 
 
 def build(db_path, input_dir, migrations_dir) -> dict:
+    if not Path(input_dir).is_dir():
+        # Individual statements are legitimately absent -- only some of the
+        # three may have been dropped in. A missing directory is different:
+        # it is a mistyped path, and reporting "0 transactions, net 0.00" for
+        # it reads as "nothing new to import".
+        raise FileNotFoundError(f"input directory does not exist: {input_dir}")
+
     con = store.connect(db_path)
     store.migrate(con, migrations_dir)
     store.require_fingerprinted_imports(con)
@@ -71,26 +78,69 @@ def build(db_path, input_dir, migrations_dir) -> dict:
             "net": net, "count": count}
 
 
+def reconcile(db_path) -> dict:
+    """Report the dataset without touching it.
+
+    A command promising reconciliation must not mutate. It previously shared
+    every line of `import` -- `args.command` was never read once Ruling 17
+    removed the hardcoded net -- so `reconcile` against a fresh database
+    inserted 179 rows and exited 0. The connection is opened mode=ro so the
+    promise is enforced by SQLite rather than by this function's good
+    intentions, and no migration runs: reporting must not change a schema
+    either.
+    """
+    path = Path(db_path)
+    if not path.exists():
+        raise FileNotFoundError(
+            f"no database at {path}. `reconcile` reports an existing database"
+            " and never creates one -- run `import` first.")
+
+    con = store.connect(path, read_only=True)
+    count = con.execute("SELECT COUNT(*) FROM transactions").fetchone()[0]
+    net = round(con.execute(
+        "SELECT COALESCE(SUM(amount), 0) FROM transactions").fetchone()[0], 2)
+    flagged = con.execute(
+        "SELECT COUNT(*) FROM transactions WHERE needs_review = 1").fetchone()[0]
+    con.close()
+    return {"count": count, "net": net, "needs_review": flagged}
+
+
 def main(argv: list[str] | None = None) -> int:
     root = Path(__file__).resolve().parents[1]
     parser = argparse.ArgumentParser(prog="server.cli")
     sub = parser.add_subparsers(dest="command", required=True)
-    for name in ("import", "reconcile"):
-        p = sub.add_parser(name)
+
+    def add_common(p):
         p.add_argument("--db", default=str(root / "data" / "transactions.db"))
-        p.add_argument("--input", default=str(root / "input"))
         p.add_argument(
             "--expect-net", type=float, default=None,
             help="exit 1 if the resulting net does not equal this value"
                  " (no check by default)")
+        return p
+
+    importer = add_common(sub.add_parser(
+        "import", help="read the statements in --input and insert new rows"))
+    importer.add_argument("--input", default=str(root / "input"))
+    add_common(sub.add_parser(
+        "reconcile", help="report an existing database; writes nothing"))
 
     args = parser.parse_args(argv)
-    Path(args.db).parent.mkdir(parents=True, exist_ok=True)
-    result = build(args.db, args.input, root / "db" / "migrations")
-
-    print(f"{result['count']} transactions, net {result['net']:.2f}")
-    print(f"  inserted {result['inserted']}, already present {result['skipped']},"
-          f" derived {result['derived']}")
+    try:
+        if args.command == "import":
+            Path(args.db).parent.mkdir(parents=True, exist_ok=True)
+            result = build(args.db, args.input, root / "db" / "migrations")
+            print(f"{result['count']} transactions, net {result['net']:.2f}")
+            print(f"  inserted {result['inserted']},"
+                  f" already present {result['skipped']},"
+                  f" derived {result['derived']}")
+        else:
+            result = reconcile(args.db)
+            print(f"{result['count']} transactions, net {result['net']:.2f}")
+            print(f"  {result['needs_review']} need review;"
+                  f" read-only, nothing written")
+    except (FileNotFoundError, store.LegacyDataError) as exc:
+        print(f"ERROR: {exc}")
+        return 2
 
     if args.expect_net is not None and result["net"] != args.expect_net:
         print(f"MISMATCH: expected net {args.expect_net:.2f}, got {result['net']:.2f}")

@@ -14,8 +14,19 @@ class LegacyDataError(RuntimeError):
     """The database holds imported rows that predate content fingerprints."""
 
 
-def connect(path: str | Path) -> sqlite3.Connection:
-    con = sqlite3.connect(str(path))
+def connect(path: str | Path, read_only: bool = False) -> sqlite3.Connection:
+    """Open the database. `read_only` opens it via SQLite's mode=ro URI.
+
+    A read-only connection is what makes a reporting command's promise not to
+    mutate enforceable rather than merely intended: any write raises
+    sqlite3.OperationalError. mode=ro also refuses to create a missing file,
+    so callers should check existence first to give a useful message.
+    """
+    if read_only:
+        con = sqlite3.connect(
+            f"{Path(path).resolve().as_uri()}?mode=ro", uri=True)
+    else:
+        con = sqlite3.connect(str(path))
     con.row_factory = sqlite3.Row
     con.execute("PRAGMA foreign_keys = ON")
     return con
