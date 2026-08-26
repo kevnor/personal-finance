@@ -10,6 +10,10 @@ from server.lib.ingest.dnb_xlsx import RawRow
 from server.lib.ingest.fingerprint import with_identity
 
 
+class LegacyDataError(RuntimeError):
+    """The database holds imported rows that predate content fingerprints."""
+
+
 def connect(path: str | Path) -> sqlite3.Connection:
     con = sqlite3.connect(str(path))
     con.row_factory = sqlite3.Row
@@ -68,6 +72,36 @@ def seed_reference_data(
             [(budget, cash, name) for name, (budget, cash) in treatments.items()])
 
     con.commit()
+
+
+def require_fingerprinted_imports(con: sqlite3.Connection) -> None:
+    """Refuse to import into a database holding unfingerprinted import rows.
+
+    Migration 002 backfills fingerprint = '' for rows that predate content
+    identity, and 003's partial unique index deliberately excludes them. So
+    upsert_transactions can match none of them and re-importing the same
+    statements silently DOUBLES the dataset -- 362 rows, net 28168.48,
+    stably wrong across repeated runs.
+
+    A wrong number that stabilises is the worst failure mode this codebase
+    has, so this fails loudly rather than backfilling quietly: a silent
+    repair would have to guess each legacy row's account_key and occurrence,
+    and getting that wrong reproduces the duplication with no trace.
+    """
+    stale = con.execute(
+        "SELECT COUNT(*) FROM transactions"
+        " WHERE origin = 'import' AND fingerprint = ''").fetchone()[0]
+    if stale:
+        raise LegacyDataError(
+            f"{stale} imported transactions have no content fingerprint, so"
+            " importing would insert every statement row a second time"
+            " instead of recognising it (expect roughly double the rows and"
+            " double the net). This database predates fingerprint identity"
+            " -- most likely a copy of the original hand-built"
+            " db/transactions.db, now kept as data/legacy-2026-08-22.db."
+            " Import into a database built by `python3 -m server.cli import`"
+            " instead, or backfill fingerprint and occurrence for the"
+            " existing rows first.")
 
 
 def upsert_transactions(

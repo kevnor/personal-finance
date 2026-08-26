@@ -23,8 +23,23 @@ statement period is a no-op. Categorisation rules live in
 |---|---|
 | `db/migrations/` | Numbered SQL migrations, applied in filename order |
 | `server/lib/` | Ingest, categorisation, budget engine |
-| `server/cli.py` | `import` and `reconcile` commands |
-| `data/transactions.db` | The database (gitignored) |
+| `server/cli.py` | `import` (writes) and `reconcile` (read-only) commands |
+| `data/transactions.db` | The live database — the only one any code writes (gitignored) |
+| `data/legacy-2026-08-22.db` | The original hand-built database (gitignored) — see below |
+
+### `data/legacy-2026-08-22.db`
+
+The database produced by the pre-app standalone script, kept only as a
+reference: it is the sole record of the 48 `counterparty` values the script
+extracted and of the hand corrections applied during the 2026-08-22 session.
+**No current code reads or writes it, and it must not be copied over
+`data/transactions.db`.** Its 181 rows predate content-fingerprint identity
+(migration 002 backfills `fingerprint = ''`, and 003's unique index
+deliberately excludes those rows), so importing into it would insert every
+statement row a second time — 362 rows, net 28 168,48, and stably wrong
+across repeated runs. `import` refuses to run against such a database
+(`store.require_fingerprinted_imports`) rather than producing that number
+quietly.
 
 ## Sources
 

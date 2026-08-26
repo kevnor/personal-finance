@@ -18,6 +18,7 @@ SOURCES = [
 def build(db_path, input_dir, migrations_dir) -> dict:
     con = store.connect(db_path)
     store.migrate(con, migrations_dir)
+    store.require_fingerprinted_imports(con)
     store.seed_reference_data(
         con,
         categorise.CATEGORIES,
