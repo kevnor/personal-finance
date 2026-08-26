@@ -37,8 +37,20 @@ def test_import_populates_counterparty_for_the_same_48_rows_as_the_legacy_db(
     pipeline stored 0, because store never called extract_counterparty. The
     count is the anchor: passing no extractor leaves every row NULL, and the
     unit test in test_upsert.py checks the extracted values themselves."""
-    cli.build(tmp_path / "t.db", INPUT, MIGRATIONS)
-    con = store.connect(tmp_path / "t.db")
+    db = tmp_path / "t.db"
+    cli.build(db, INPUT, MIGRATIONS)
+    con = store.connect(db)
+    assert con.execute(
+        "SELECT COUNT(counterparty) FROM transactions").fetchone()[0] == 48
+
+    # A database imported before the wiring existed has NULL for every row,
+    # and re-importing skips them as already present -- so import repairs
+    # them rather than leaving the column permanently empty.
+    con.execute("UPDATE transactions SET counterparty = NULL")
+    con.commit()
+    con.close()
+    cli.build(db, INPUT, MIGRATIONS)
+    con = store.connect(db)
     assert con.execute(
         "SELECT COUNT(counterparty) FROM transactions").fetchone()[0] == 48
 

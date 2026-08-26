@@ -79,6 +79,10 @@ def build(db_path, input_dir, migrations_dir) -> dict:
     # missing. They are content-keyed and idempotent, so a run that has
     # nothing to fix does nothing.
     fixes = corrections.apply(con)
+    # Rows imported before the extractor was wired in carry no counterparty
+    # and are skipped as already present, so they need repairing rather than
+    # re-inserting. Derived from the description, so always safe to recompute.
+    store.backfill_counterparty(con, categorise.extract_counterparty)
 
     count = con.execute("SELECT COUNT(*) FROM transactions").fetchone()[0]
     net = round(con.execute(

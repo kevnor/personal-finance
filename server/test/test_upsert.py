@@ -143,6 +143,41 @@ def test_counterparty_is_left_null_when_no_extractor_is_given(con):
         "SELECT COUNT(counterparty) FROM transactions").fetchone()[0] == 0
 
 
+def test_counterparty_is_backfilled_on_rows_that_predate_the_wiring(con):
+    """A database imported before the extractor was wired in keeps NULL for
+    every row, and re-importing skips those rows as already present -- so the
+    column needs repairing, not re-inserting."""
+    load(con, CARD_1)
+    con.execute("UPDATE transactions SET counterparty = NULL")
+    con.commit()
+
+    changed = store.backfill_counterparty(
+        con, categorise.extract_counterparty)
+    assert changed == 12
+    assert con.execute(
+        "SELECT counterparty FROM transactions"
+        " WHERE description = 'Vipps*Bjarte Lunde Sk, Oslo'"
+    ).fetchone()[0] == "Bjarte Lunde Sk"
+
+    # Idempotent: a second pass finds nothing left to fill.
+    assert store.backfill_counterparty(
+        con, categorise.extract_counterparty) == 0
+
+
+def test_backfill_never_overwrites_an_existing_counterparty(con):
+    """A hand correction must survive, so only NULLs are filled."""
+    load(con, CARD_1)
+    con.execute(
+        "UPDATE transactions SET counterparty = 'Corrected By Hand'"
+        " WHERE description = 'Vipps*Bjarte Lunde Sk, Oslo'")
+    con.commit()
+    store.backfill_counterparty(con, categorise.extract_counterparty)
+    assert con.execute(
+        "SELECT counterparty FROM transactions"
+        " WHERE description = 'Vipps*Bjarte Lunde Sk, Oslo'"
+    ).fetchone()[0] == "Corrected By Hand"
+
+
 def test_is_transfer_is_set_from_the_category_kind(con):
     """`r["is_transfer"] in (0, 1)` is a tautology -- the CHECK constraint
     already guarantees it, so hardcoding is_transfer = 0 in the writer passed

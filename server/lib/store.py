@@ -212,6 +212,35 @@ def upsert_transactions(
     return inserted, skipped
 
 
+def backfill_counterparty(
+    con: sqlite3.Connection,
+    counterparty: Callable[[str], str | None],
+) -> int:
+    """Fill counterparty on rows that have none. Returns rows changed.
+
+    Wiring the extractor into the insert path only recovers the column for
+    rows inserted from then on -- a database imported before the wiring
+    existed keeps NULL for all 181 of its rows, and re-importing skips them
+    as already present. This is safe to repair rather than refuse (unlike
+    identity, cf. require_fingerprinted_imports): the value is derived purely
+    from the row's own immutable description, nothing depends on it, and a
+    non-NULL value is never overwritten, so a hand correction survives.
+    """
+    changed = 0
+    rows = con.execute(
+        "SELECT id, description FROM transactions"
+        " WHERE counterparty IS NULL").fetchall()
+    for row in rows:
+        name = counterparty(row["description"])
+        if name is None:
+            continue
+        con.execute("UPDATE transactions SET counterparty = ? WHERE id = ?",
+                    (name, row["id"]))
+        changed += 1
+    con.commit()
+    return changed
+
+
 def insert_derived_rows(
     con: sqlite3.Connection,
     rows: Iterable[RawRow],
