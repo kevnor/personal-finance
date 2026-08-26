@@ -18,12 +18,14 @@ INPUT = ROOT / "input"
 MIGRATIONS = ROOT / "db" / "migrations"
 
 
-def legacy_db(tmp_path, rows=3, origin=None):
+def legacy_db(tmp_path, rows=3, origin=None, migrated=True):
     """A database shaped like the pre-fingerprint one.
 
-    Built by applying 001 alone, inserting rows, then applying the rest --
-    which is precisely how the real legacy database reached its current
-    state, and why its rows carry fingerprint = ''.
+    Built by applying 001 alone and inserting rows. With `migrated` it then
+    applies the rest, which is how the real legacy database would reach the
+    fingerprint = '' state; without it, the database stays on the pre-002
+    schema the original hand-built one is actually on -- no fingerprint or
+    origin column at all.
     """
     baseline = tmp_path / "baseline"
     baseline.mkdir()
@@ -44,7 +46,8 @@ def legacy_db(tmp_path, rows=3, origin=None):
             (f"REMA 1000 row {n}", n + 1))
     con.commit()
 
-    store.migrate(con, MIGRATIONS)      # 002 backfills fingerprint = ''
+    if migrated:
+        store.migrate(con, MIGRATIONS)  # 002 backfills fingerprint = ''
     if origin is not None:
         con.execute("UPDATE transactions SET origin = ?", (origin,))
         con.commit()
@@ -71,6 +74,39 @@ def test_guard_ignores_manual_rows_which_legitimately_have_no_fingerprint(
     carry no fingerprint by design and must not block an import."""
     con = legacy_db(tmp_path, origin="manual")
     store.require_fingerprinted_imports(con)
+
+
+def test_guard_fires_on_a_pre_002_schema_with_no_fingerprint_column(tmp_path):
+    """The real hand-built database is on this schema: no fingerprint column,
+    no origin column, no schema_migrations table. Every row it holds came
+    from an import by construction."""
+    con = legacy_db(tmp_path, migrated=False)
+    columns = {r["name"] for r in con.execute("PRAGMA table_info(transactions)")}
+    assert "fingerprint" not in columns
+
+    with pytest.raises(store.LegacyDataError):
+        store.require_fingerprinted_imports(con)
+
+
+@pytest.mark.skipif(not (INPUT / "Kontoutskrift.xlsx").exists(),
+                    reason="statements not present")
+def test_import_refuses_a_legacy_database_without_altering_its_schema(tmp_path):
+    """The guard runs before migrate, so a database this refuses is left
+    exactly as it was found -- not silently upgraded on the way to a
+    refusal."""
+    con = legacy_db(tmp_path, migrated=False)
+    before = {r[0] for r in con.execute(
+        "SELECT sql FROM sqlite_master WHERE sql IS NOT NULL")}
+    con.close()
+
+    with pytest.raises(store.LegacyDataError):
+        cli.build(tmp_path / "legacy.db", INPUT, MIGRATIONS)
+
+    after = store.connect(tmp_path / "legacy.db")
+    assert {r[0] for r in after.execute(
+        "SELECT sql FROM sqlite_master WHERE sql IS NOT NULL")} == before
+    assert after.execute(
+        "SELECT COUNT(*) FROM transactions").fetchone()[0] == 3
 
 
 def test_guard_is_silent_on_an_empty_database(tmp_path):

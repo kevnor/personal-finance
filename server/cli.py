@@ -25,8 +25,10 @@ def build(db_path, input_dir, migrations_dir) -> dict:
         raise FileNotFoundError(f"input directory does not exist: {input_dir}")
 
     con = store.connect(db_path)
-    store.migrate(con, migrations_dir)
+    # Checked before migrate so a legacy database is refused without having
+    # its schema altered first.
     store.require_fingerprinted_imports(con)
+    store.migrate(con, migrations_dir)
     store.seed_reference_data(
         con,
         categorise.CATEGORIES,
@@ -149,7 +151,7 @@ def main(argv: list[str] | None = None) -> int:
             result = reconcile(args.db)
             print(f"{result['count']} transactions, net {result['net']:.2f}")
             print(f"  {result['needs_review']} need review;"
-                  f" read-only, nothing written")
+                  " read-only, nothing written")
     except (FileNotFoundError, store.LegacyDataError) as exc:
         print(f"ERROR: {exc}")
         return 2

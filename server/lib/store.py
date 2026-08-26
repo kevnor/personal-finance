@@ -127,10 +127,22 @@ def require_fingerprinted_imports(con: sqlite3.Connection) -> None:
     has, so this fails loudly rather than backfilling quietly: a silent
     repair would have to guess each legacy row's account_key and occurrence,
     and getting that wrong reproduces the duplication with no trace.
+
+    Called before migrate(), so it also handles a database still on the
+    pre-002 schema -- the original hand-built one is exactly that, with no
+    fingerprint column at all -- and refuses without having altered it.
     """
-    stale = con.execute(
-        "SELECT COUNT(*) FROM transactions"
-        " WHERE origin = 'import' AND fingerprint = ''").fetchone()[0]
+    columns = {r["name"] for r in con.execute("PRAGMA table_info(transactions)")}
+    if not columns:
+        return                       # no transactions table yet: fresh
+    if {"origin", "fingerprint"} <= columns:
+        stale = con.execute(
+            "SELECT COUNT(*) FROM transactions"
+            " WHERE origin = 'import' AND fingerprint = ''").fetchone()[0]
+    else:
+        # Pre-002: no row can carry a fingerprint, and `origin` did not exist
+        # either, so every row present came from an import by construction.
+        stale = con.execute("SELECT COUNT(*) FROM transactions").fetchone()[0]
     if stale:
         raise LegacyDataError(
             f"{stale} imported transactions have no content fingerprint, so"
