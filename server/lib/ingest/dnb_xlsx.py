@@ -14,6 +14,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from xml.etree import ElementTree as ET
 
+from server.lib.ingest import RawRow
+
+# Re-exported so existing `dnb_xlsx.RawRow` references keep working; the
+# canonical home is server.lib.ingest, since the row shape is shared by every
+# source rather than owned by this format.
+__all__ = ["BANK", "CARD", "Layout", "RawRow", "read_statement"]
+
 NS = "{http://schemas.openxmlformats.org/spreadsheetml/2006/main}"
 EXCEL_EPOCH = datetime.date(1899, 12, 30)
 CARRYOVER_RE = re.compile(r"skyldig bel.p fra forrige faktura", re.I)
@@ -32,14 +39,6 @@ class Layout:
 BANK = Layout(date=0, description=1, incoming=4, outgoing=3)
 # Transaksjonsliste: Dato | Beløpet gjelder | Valuta | Kurs | Inn | Ut
 CARD = Layout(date=0, description=1, incoming=4, outgoing=5)
-
-
-@dataclass(frozen=True)
-class RawRow:
-    date: str
-    description: str
-    amount: float
-    source_row: int
 
 
 def _column_index(ref: str) -> int:

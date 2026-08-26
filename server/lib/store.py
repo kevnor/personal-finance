@@ -6,7 +6,7 @@ import sqlite3
 from collections.abc import Callable, Iterable, Mapping
 from pathlib import Path
 
-from server.lib.ingest.dnb_xlsx import RawRow
+from server.lib.ingest import RawRow
 from server.lib.ingest.fingerprint import with_identity
 
 

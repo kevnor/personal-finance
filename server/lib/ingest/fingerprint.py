@@ -13,7 +13,7 @@ from __future__ import annotations
 import hashlib
 from collections import defaultdict
 
-from server.lib.ingest.dnb_xlsx import RawRow
+from server.lib.ingest import RawRow
 
 
 def fingerprint(account_key: str, date: str, description: str,

@@ -2,8 +2,27 @@ import sqlite3
 from pathlib import Path
 
 from server.lib import store
+from server.lib import ingest
+from server.lib.ingest import dnb_xlsx, fingerprint
 
 MIGRATIONS = Path(__file__).resolve().parents[2] / "db" / "migrations"
+SERVER = Path(__file__).resolve().parents[1]
+
+
+def test_raw_row_is_owned_by_the_ingest_package_not_the_dnb_reader():
+    """The spec's ingest design rests on four sources sharing one row shape,
+    so the shape cannot belong to one format's reader. It previously did, and
+    both store.py and fingerprint.py imported the persistence and identity
+    layers' central type from a DNB spreadsheet parser."""
+    assert dnb_xlsx.RawRow is ingest.RawRow      # still importable there
+    assert ingest.RawRow.__module__ == "server.lib.ingest"
+
+
+def test_the_persistence_and_identity_layers_do_not_import_a_format_reader():
+    for module in ("lib/store.py", "lib/ingest/fingerprint.py"):
+        source = (SERVER / module).read_text(encoding="utf-8")
+        assert "dnb_xlsx" not in source, module
+    assert fingerprint.RawRow is ingest.RawRow
 
 
 def test_migrate_applies_baseline_then_is_idempotent(tmp_path):
