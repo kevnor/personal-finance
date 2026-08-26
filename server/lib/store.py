@@ -117,3 +117,73 @@ def upsert_transactions(
 
     con.commit()
     return inserted, skipped
+
+
+def insert_derived_rows(
+    con: sqlite3.Connection,
+    rows: Iterable[RawRow],
+    account_id: int,
+    batch_id: int,
+    splitter: Callable[[str, float], list],
+) -> tuple[int, int, int]:
+    """Insert derived rows for source rows that split (e.g. a loan term into
+    interest/principal/fee parts), skipping any source row already split.
+
+    Shares upsert_transactions' fingerprint/occurrence identity scheme, but
+    checks it against is_derived = 1 rather than is_derived = 0. Migration
+    003's partial unique index deliberately excludes derived rows -- one
+    source row legitimately produces several of them -- so this in-code
+    check, not a database constraint, is what keeps a repeat run from
+    duplicating a split. Splitting before insertion (rather than inserting
+    the source row plainly and later deleting it in favour of its parts) is
+    what keeps that check meaningful: a deleted is_derived = 0 row would be
+    invisible to upsert_transactions' own identity check above, and the
+    next run would silently reinsert and resplit it.
+
+    `splitter(description, amount)` returns the parts to insert for one
+    source row, or an empty list for a row that does not split -- such rows
+    are left untouched, since they belong to the normal upsert_transactions
+    path instead.
+
+    Returns (inserted, skipped, derived): inserted/skipped are counted in
+    *source rows*, like upsert_transactions, so the two still sum to
+    len(rows); derived is the total count of derived rows actually written,
+    reported separately since one source row can produce several.
+    """
+    ids = {r["name"]: r["id"]
+           for r in con.execute("SELECT id, name FROM categories")}
+    kinds = {r["name"]: r["kind"]
+             for r in con.execute("SELECT name, kind FROM categories")}
+
+    account_key = str(account_id)
+    inserted = skipped = derived = 0
+    for row, fp, occurrence in with_identity(list(rows), account_key):
+        parts = splitter(row.description, row.amount)
+        if not parts:
+            continue
+
+        exists = con.execute(
+            "SELECT 1 FROM transactions"
+            " WHERE account_id = ? AND fingerprint = ? AND occurrence = ?"
+            "   AND is_derived = 1",
+            (account_id, fp, occurrence)).fetchone()
+        if exists:
+            skipped += 1
+            continue
+
+        for part in parts:
+            con.execute(
+                "INSERT INTO transactions (date, account_id, description,"
+                " amount, category_id, is_transfer, needs_review, batch_id,"
+                " source_row, fingerprint, occurrence, is_derived, origin, note)"
+                " VALUES (?,?,?,?,?,?,0,?,?,?,?,1,'derived',?)",
+                (row.date, account_id, part.description, part.amount,
+                 ids[part.category],
+                 1 if kinds[part.category] == "transfer" else 0,
+                 batch_id, row.source_row, fp, occurrence,
+                 f"split from source row {row.source_row}"))
+            derived += 1
+        inserted += 1
+
+    con.commit()
+    return inserted, skipped, derived

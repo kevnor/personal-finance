@@ -50,3 +50,27 @@ def test_no_unsplit_mortgage_row_remains(tmp_path):
         "SELECT COUNT(*) FROM transactions t JOIN categories c"
         " ON c.id = t.category_id WHERE c.name = 'Mortgage & loan'"
     ).fetchone()[0] == 0
+
+
+def test_loan_split_inserts_nothing_further_on_a_second_run(tmp_path):
+    """Regression test for the bug fixed in this task: an earlier design
+    inserted the raw loan row and then deleted it in favour of its derived
+    parts, which made the row invisible to upsert_transactions' identity
+    check (is_derived = 0 only) and caused it to be silently reinserted and
+    resplit on every subsequent run. `assert second["count"] == 181` alone
+    would not catch a regression that inserts and deletes in equal measure,
+    and the set-based category assertion above would not notice six derived
+    rows where three are expected, so this checks both the reported
+    "derived" count and the actual row count directly.
+    """
+    from server.lib import store
+    db = tmp_path / "t.db"
+    first = cli.build(db, INPUT, MIGRATIONS)
+    second = cli.build(db, INPUT, MIGRATIONS)
+    assert first["derived"] == 3
+    assert second["derived"] == 0
+
+    con = store.connect(db)
+    assert con.execute(
+        "SELECT COUNT(*) FROM transactions WHERE is_derived = 1"
+    ).fetchone()[0] == 3
