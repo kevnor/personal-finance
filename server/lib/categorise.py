@@ -5,8 +5,8 @@ import re
 from collections.abc import Mapping
 from dataclasses import dataclass
 
-# --- CATEGORIES, RULES, VIPPS_RE moved verbatim from
-# --- db/import_transactions.py @ d0f2b9a (lines 58-156). Do not retune.
+# --- CATEGORIES, RULES, VIPPS_RE moved verbatim from the original
+# --- standalone import script (commit d0f2b9a, lines 58-156). Do not retune.
 
 # (name, kind). Order here is only for readability.
 CATEGORIES = [
