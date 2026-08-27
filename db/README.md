@@ -43,9 +43,10 @@ still reconciling to 14 084,24 — neither correction changes the net.
 
 ### `data/legacy-2026-08-22.db`
 
-The database produced by the pre-app standalone script, kept only as a
-reference: it is the sole record of the 48 `counterparty` values the script
-extracted and of the hand corrections applied during the 2026-08-22 session.
+The database produced by the pre-app standalone script, kept as a provenance
+reference: it is the original hand-built database; the 48 `counterparty`
+values and hand corrections it contains are now reproducible from the
+statement pipeline.
 **No current code reads or writes it, and it must not be copied over
 `data/transactions.db`.** Its 181 rows predate content-fingerprint identity
 (migration 002 backfills `fingerprint = ''`, and 003's unique index
