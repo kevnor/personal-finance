@@ -9,3 +9,5 @@ input/
 db/transactions.csv
 db/needs_review.csv
 db/import.sql
+.claude/
+/input

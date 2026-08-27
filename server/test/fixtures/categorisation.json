@@ -1,0 +1,1070 @@
+[
+ {
+  "description": "IBSEN TANNKLINIKK/ TAN, OSLO",
+  "amount": -1350.0,
+  "category": "Health - dental",
+  "needs_review": false
+ },
+ {
+  "description": "Vipps*Sumo Solli Plass, Oslo",
+  "amount": -269.0,
+  "category": "Restaurants & takeaway",
+  "needs_review": false
+ },
+ {
+  "description": "Innbetaling",
+  "amount": 2156.0,
+  "category": "Credit card payment",
+  "needs_review": false
+ },
+ {
+  "description": "Innbetaling",
+  "amount": 1350.0,
+  "category": "Credit card payment",
+  "needs_review": false
+ },
+ {
+  "description": "Innbetaling",
+  "amount": 797.0,
+  "category": "Credit card payment",
+  "needs_review": false
+ },
+ {
+  "description": "BOLT.EU/O/9010000000, Tallinn, EST",
+  "amount": -375.0,
+  "category": "Taxi & ride-hailing",
+  "needs_review": false
+ },
+ {
+  "description": "Vipps*Bjarte Lunde Sk, Oslo",
+  "amount": -350.0,
+  "category": "Vipps P2P - unspecified",
+  "needs_review": true
+ },
+ {
+  "description": "Vipps*Anders Vestli B, Oslo",
+  "amount": -270.0,
+  "category": "Vipps P2P - unspecified",
+  "needs_review": true
+ },
+ {
+  "description": "KID 47147 STORO, Oslo",
+  "amount": -305.9,
+  "category": "Home & furniture",
+  "needs_review": false
+ },
+ {
+  "description": "Vipps*VY App, Oslo",
+  "amount": -658.0,
+  "category": "Public transport",
+  "needs_review": false
+ },
+ {
+  "description": "KONDOMERIET AS, Oslo",
+  "amount": -359.0,
+  "category": "Personal care",
+  "needs_review": false
+ },
+ {
+  "description": "Innbetaling",
+  "amount": 5433.54,
+  "category": "Credit card payment",
+  "needs_review": false
+ },
+ {
+  "description": "REMA 1000 LORENVEIEN, OSLO",
+  "amount": -99.32,
+  "category": "Groceries",
+  "needs_review": false
+ },
+ {
+  "description": "SPORT OUTLET KA, Oslo",
+  "amount": -2113.0,
+  "category": "Sports & outdoor",
+  "needs_review": false
+ },
+ {
+  "description": "Overføring  90200000000 Ingvild Kvamme Berg Tpp: Vipps",
+  "amount": 190.0,
+  "category": "Vipps P2P - unspecified",
+  "needs_review": true
+ },
+ {
+  "description": "PROUD MARY OSLO, Oslo",
+  "amount": -238.0,
+  "category": "Cafe & bakery",
+  "needs_review": false
+ },
+ {
+  "description": "PROUD MARY OSLO, Oslo",
+  "amount": -119.0,
+  "category": "Cafe & bakery",
+  "needs_review": false
+ },
+ {
+  "description": "PROUD MARY OSLO, Oslo",
+  "amount": -238.0,
+  "category": "Cafe & bakery",
+  "needs_review": false
+ },
+ {
+  "description": "Proud Mary Oslo, Kristiansand",
+  "amount": -259.0,
+  "category": "Cafe & bakery",
+  "needs_review": false
+ },
+ {
+  "description": "PROUD MARY OSLO, Oslo",
+  "amount": -119.0,
+  "category": "Cafe & bakery",
+  "needs_review": false
+ },
+ {
+  "description": "KEBAB BITEN AS, OSLO",
+  "amount": -380.0,
+  "category": "Restaurants & takeaway",
+  "needs_review": false
+ },
+ {
+  "description": "Overføring  90300000000 Ingvild Kvamme Berg Tpp: Vipps",
+  "amount": 102.0,
+  "category": "Vipps P2P - unspecified",
+  "needs_review": true
+ },
+ {
+  "description": "Overføring  9040000000 Sindre Aalborg LatteTpp: Vipps Mobilepay AS",
+  "amount": -69.0,
+  "category": "Cafe & bakery",
+  "needs_review": false
+ },
+ {
+  "description": "Overføring  9050000000 Solveig Marte Vangen HumoretatenTpp: Vipps Mobilepay AS",
+  "amount": -140.0,
+  "category": "Entertainment",
+  "needs_review": false
+ },
+ {
+  "description": "Kontoregulering  237 Ukespenger",
+  "amount": 2200.0,
+  "category": "Internal transfer",
+  "needs_review": false
+ },
+ {
+  "description": "Varekjøp Deli De Luca Os Jernbanetorg Oslo Dato 01.07 kl. 14.53",
+  "amount": -131.9,
+  "category": "Convenience & kiosk",
+  "needs_review": false
+ },
+ {
+  "description": "Varekjøp Narvesen 417 In Jernbanetorg Oslo Dato 01.07 kl. 13.10",
+  "amount": -40.9,
+  "category": "Convenience & kiosk",
+  "needs_review": false
+ },
+ {
+  "description": "Varekjøp Tog Ga (a349) Tøyenbekken 0188 Osl Dato 01.07 kl. 17.32",
+  "amount": -48.0,
+  "category": "Public transport",
+  "needs_review": false
+ },
+ {
+  "description": "Innbetaling",
+  "amount": 1656.32,
+  "category": "Credit card payment",
+  "needs_review": false
+ },
+ {
+  "description": "Innbetaling",
+  "amount": 1080.0,
+  "category": "Credit card payment",
+  "needs_review": false
+ },
+ {
+  "description": "AVD.47 BAKER NO, OSLO",
+  "amount": -204.0,
+  "category": "Cafe & bakery",
+  "needs_review": false
+ },
+ {
+  "description": "Vipps*Eirik Tangen, Oslo",
+  "amount": -270.0,
+  "category": "Vipps P2P - unspecified",
+  "needs_review": true
+ },
+ {
+  "description": "Vipps*Jonas Vestli B, Oslo",
+  "amount": -270.0,
+  "category": "Vipps P2P - unspecified",
+  "needs_review": true
+ },
+ {
+  "description": "Vipps*Trygve Solheim H, Oslo",
+  "amount": -270.0,
+  "category": "Vipps P2P - unspecified",
+  "needs_review": true
+ },
+ {
+  "description": "Vipps*Halvard Stene M, Oslo",
+  "amount": -270.0,
+  "category": "Vipps P2P - unspecified",
+  "needs_review": true
+ },
+ {
+  "description": "Overføring Bente Kathrine Berntzen MatRef:",
+  "amount": 700.0,
+  "category": "Groceries",
+  "needs_review": false
+ },
+ {
+  "description": "Varekjøp Extra Drangedal Lauvåsen 1 Drangeda Dato 02.07 kl. 15.47",
+  "amount": -700.8,
+  "category": "Groceries",
+  "needs_review": false
+ },
+ {
+  "description": "Visa  100021  Www Coop No Medlem",
+  "amount": -300.0,
+  "category": "Memberships",
+  "needs_review": false
+ },
+ {
+  "description": "Overføring Innland  1362 Tor Bolle Waage Stavær",
+  "amount": 300.0,
+  "category": "Vipps P2P - unspecified",
+  "needs_review": true
+ },
+ {
+  "description": "Varekjøp Circle k Telema Prestmoen 4 Porsgr Dato 04.07 kl. 10.36",
+  "amount": -35.9,
+  "category": "Cafe & bakery",
+  "needs_review": false
+ },
+ {
+  "description": "Varekjøp Vitusapotek Sto Vitaminvn. 7 Oslo Dato 04.07 kl. 15.10",
+  "amount": -99.9,
+  "category": "Health - pharmacy",
+  "needs_review": false
+ },
+ {
+  "description": "Visa  100021  Vipps:sindre Aalborg",
+  "amount": -30.0,
+  "category": "Vipps P2P - unspecified",
+  "needs_review": true
+ },
+ {
+  "description": "REMA 1000 LORENVEIEN, OSLO",
+  "amount": -726.63,
+  "category": "Groceries",
+  "needs_review": false
+ },
+ {
+  "description": "SPORT OUTLET, Oslo",
+  "amount": -1085.0,
+  "category": "Sports & outdoor",
+  "needs_review": false
+ },
+ {
+  "description": "JOKER LØREN STA, Oslo",
+  "amount": -256.73,
+  "category": "Groceries",
+  "needs_review": false
+ },
+ {
+  "description": "Overføring  90700000000 Ingvild Kvamme Berg Tpp: Vipps",
+  "amount": 106.5,
+  "category": "Vipps P2P - unspecified",
+  "needs_review": true
+ },
+ {
+  "description": "Overføring  90800000000 Ingvild Kvamme Berg Tpp: Vipps",
+  "amount": 180.0,
+  "category": "Vipps P2P - unspecified",
+  "needs_review": true
+ },
+ {
+  "description": "Varekjøp Narvesen 885 Ri Thorvald Mey Oslo Dato 05.07 kl. 14.15",
+  "amount": -32.0,
+  "category": "Convenience & kiosk",
+  "needs_review": false
+ },
+ {
+  "description": "Varekjøp Grød Markveien Markveien 67 Oslo Dato 05.07 kl. 12.34",
+  "amount": -213.0,
+  "category": "Cafe & bakery",
+  "needs_review": false
+ },
+ {
+  "description": "Vipps*Fly Chicken App, Oslo",
+  "amount": -360.0,
+  "category": "Restaurants & takeaway",
+  "needs_review": false
+ },
+ {
+  "description": "VEIKROA NES I Å, Nes I AAdal",
+  "amount": -244.0,
+  "category": "Restaurants & takeaway",
+  "needs_review": false
+ },
+ {
+  "description": "7-ELEVEN LANGS VEI 758, NES I ADAL",
+  "amount": -47.9,
+  "category": "Convenience & kiosk",
+  "needs_review": false
+ },
+ {
+  "description": "Uno-X 71056 Nes i AAda, Nes I AAdal",
+  "amount": -135.37,
+  "category": "Fuel & EV charging",
+  "needs_review": false
+ },
+ {
+  "description": "Rabatt varekjøp ladestasjon",
+  "amount": 10.83,
+  "category": "Fuel & EV charging",
+  "needs_review": false
+ },
+ {
+  "description": "Varekjøp Leirvassbu Turi Strandvegen Lesjas Dato 07.07 kl. 17.20",
+  "amount": -50.0,
+  "category": "Accommodation",
+  "needs_review": false
+ },
+ {
+  "description": "Vipps*DNT-Den Norske T, Oslo",
+  "amount": -860.0,
+  "category": "Memberships",
+  "needs_review": false
+ },
+ {
+  "description": "Leirvassbu Turi, Lesjaskog",
+  "amount": -1280.0,
+  "category": "Accommodation",
+  "needs_review": false
+ },
+ {
+  "description": "Leirvassbu Turi, Lesjaskog",
+  "amount": -120.0,
+  "category": "Accommodation",
+  "needs_review": false
+ },
+ {
+  "description": "Kontoregulering  239 Ukespenger",
+  "amount": 1800.0,
+  "category": "Internal transfer",
+  "needs_review": false
+ },
+ {
+  "description": "Vipps*VY App, Oslo",
+  "amount": 320.0,
+  "category": "Public transport",
+  "needs_review": false
+ },
+ {
+  "description": "Vipps*Morgenbladet AS, Oslo",
+  "amount": -10.0,
+  "category": "Subscriptions",
+  "needs_review": false
+ },
+ {
+  "description": "Leirvassbu Turi, Lesjaskog",
+  "amount": -105.0,
+  "category": "Accommodation",
+  "needs_review": false
+ },
+ {
+  "description": "Leirvassbu Turi, Lesjaskog",
+  "amount": -45.0,
+  "category": "Accommodation",
+  "needs_review": false
+ },
+ {
+  "description": "Leirvassbu Turi, Lesjaskog",
+  "amount": -38.0,
+  "category": "Accommodation",
+  "needs_review": false
+ },
+ {
+  "description": "Varekjøp Gjendebu. Vagstadbygge Innvik Dato 10.07 kl. 12.40",
+  "amount": -95.0,
+  "category": "Accommodation",
+  "needs_review": false
+ },
+ {
+  "description": "Varekjøp Gjendebu. Vagstadbygge Innvik Dato 10.07 kl. 13.54",
+  "amount": -120.0,
+  "category": "Accommodation",
+  "needs_review": false
+ },
+ {
+  "description": "Varekjøp Gjendebu. Vagstadbygge Innvik Dato 10.07 kl. 14.52",
+  "amount": -50.0,
+  "category": "Accommodation",
+  "needs_review": false
+ },
+ {
+  "description": "Varekjøp Rema Leira Skulevegen 7 Leira i Val Dato 10.07 kl. 19.49",
+  "amount": -74.9,
+  "category": "Groceries",
+  "needs_review": false
+ },
+ {
+  "description": "Varekjøp Burger King Lei Markavegen Leira i Dato 10.07 kl. 19.06",
+  "amount": -228.0,
+  "category": "Restaurants & takeaway",
+  "needs_review": false
+ },
+ {
+  "description": "Visa  100021  Uno-x 72024 Leira El",
+  "amount": -233.56,
+  "category": "Fuel & EV charging",
+  "needs_review": false
+ },
+ {
+  "description": "Varekjøp Rema Lorenveien Lørenveien 3 Oslo Dato 11.07 kl. 14.43",
+  "amount": -81.8,
+  "category": "Groceries",
+  "needs_review": false
+ },
+ {
+  "description": "Varekjøp Rema Lorenveien Lørenveien 3 Oslo Dato 11.07 kl. 09.31",
+  "amount": -380.68,
+  "category": "Groceries",
+  "needs_review": false
+ },
+ {
+  "description": "Varekjøp Sats Hasle Grenseveien Oslo Dato 11.07 kl. 14.27",
+  "amount": -69.0,
+  "category": "Gym & fitness",
+  "needs_review": false
+ },
+ {
+  "description": "Varekjøp Kb37 Løren Lørenveien 4 Oslo Dato 11.07 kl. 09.42",
+  "amount": -66.0,
+  "category": "Cafe & bakery",
+  "needs_review": false
+ },
+ {
+  "description": "Varekjøp Meny Løren (gln Lørenveien 4 Oslo Dato 11.07 kl. 17.39",
+  "amount": -63.21,
+  "category": "Groceries",
+  "needs_review": false
+ },
+ {
+  "description": "Visa  100121  Vipps:sindre Aalborg",
+  "amount": -160.0,
+  "category": "Vipps P2P - unspecified",
+  "needs_review": true
+ },
+ {
+  "description": "Visa  100221  Vipps:tor Bolle Waage",
+  "amount": -892.95,
+  "category": "Vipps P2P - unspecified",
+  "needs_review": true
+ },
+ {
+  "description": "Varekjøp Joker Løren Sta Peter Møller Oslo Dato 12.07 kl. 15.51",
+  "amount": -124.13,
+  "category": "Groceries",
+  "needs_review": false
+ },
+ {
+  "description": "Varekjøp Avd.47 Baker No Børsteveien Oslo Dato 12.07 kl. 11.18",
+  "amount": -54.0,
+  "category": "Cafe & bakery",
+  "needs_review": false
+ },
+ {
+  "description": "Visa  100321  Baneleie - Squash",
+  "amount": -299.0,
+  "category": "Sports & outdoor",
+  "needs_review": false
+ },
+ {
+  "description": "Giro  391 Fjordkraft AS AvtalegiroFjordkraft AS",
+  "amount": -397.11,
+  "category": "Utilities - electricity",
+  "needs_review": false
+ },
+ {
+  "description": "Varekjøp Kb37 Løren Lørenveien 4 Oslo Dato 13.07 kl. 07.16",
+  "amount": -44.0,
+  "category": "Cafe & bakery",
+  "needs_review": false
+ },
+ {
+  "description": "Varekjøp Rema 1000 Sinse Sinsenveien Oslo Dato 13.07 kl. 17.30",
+  "amount": -70.4,
+  "category": "Groceries",
+  "needs_review": false
+ },
+ {
+  "description": "Varekjøp Rema 1000 Sinse Sinsenveien Oslo Dato 14.07 kl. 08.18",
+  "amount": -69.8,
+  "category": "Groceries",
+  "needs_review": false
+ },
+ {
+  "description": "Overføring  91200000000 Ingvild Kvamme Berg Tpp: Vipps",
+  "amount": 159.5,
+  "category": "Vipps P2P - unspecified",
+  "needs_review": true
+ },
+ {
+  "description": "Varekjøp Rema Lorenveien Lørenveien 3 Oslo Dato 14.07 kl. 18.49",
+  "amount": -87.9,
+  "category": "Groceries",
+  "needs_review": false
+ },
+ {
+  "description": "Visa  100021  Dominos",
+  "amount": -319.0,
+  "category": "Restaurants & takeaway",
+  "needs_review": false
+ },
+ {
+  "description": "Kontoregulering  242 Ukespenger",
+  "amount": 2200.0,
+  "category": "Internal transfer",
+  "needs_review": false
+ },
+ {
+  "description": "Overføring Innland  91300000000 Torkel Aalborg",
+  "amount": 44.0,
+  "category": "Vipps P2P - unspecified",
+  "needs_review": true
+ },
+ {
+  "description": "Varekjøp Kiwi 373 Solli Henrik Ibsen Oslo Dato 15.07 kl. 13.57",
+  "amount": -142.8,
+  "category": "Groceries",
+  "needs_review": false
+ },
+ {
+  "description": "Varekjøp Rema 1000 Sinse Sinsenveien Oslo Dato 15.07 kl. 17.59",
+  "amount": -89.8,
+  "category": "Groceries",
+  "needs_review": false
+ },
+ {
+  "description": "Varekjøp Rema Lorenveien Lørenveien 3 Oslo Dato 16.07 kl. 12.26",
+  "amount": -193.19,
+  "category": "Groceries",
+  "needs_review": false
+ },
+ {
+  "description": "Visa  100022  Nok 219,00 Spotifyse",
+  "amount": -219.0,
+  "category": "Subscriptions",
+  "needs_review": false
+ },
+ {
+  "description": "Overføring Sindre Aalborg Stol Fra JyskRef:",
+  "amount": 1800.0,
+  "category": "Home & furniture",
+  "needs_review": false
+ },
+ {
+  "description": "Lønn  900112233 Nordvest Teknikk AS",
+  "amount": 41113.67,
+  "category": "Salary",
+  "needs_review": false
+ },
+ {
+  "description": "Varekjøp Rema Lorenveien Lørenveien 3 Oslo Dato 17.07 kl. 17.14",
+  "amount": -161.14,
+  "category": "Groceries",
+  "needs_review": false
+ },
+ {
+  "description": "Varekjøp Haugen Ullevålsveie Oslo Dato 17.07 kl. 18.48",
+  "amount": -58.0,
+  "category": "Bars & nightlife",
+  "needs_review": false
+ },
+ {
+  "description": "Varekjøp Haugen Ullevålsveie Oslo Dato 17.07 kl. 19.34",
+  "amount": -114.0,
+  "category": "Bars & nightlife",
+  "needs_review": false
+ },
+ {
+  "description": "Overføring  91500000000 Ingvild Kvamme Berg Tpp: Vipps",
+  "amount": 150.0,
+  "category": "Vipps P2P - unspecified",
+  "needs_review": true
+ },
+ {
+  "description": "Varekjøp Avd.47 Baker No Børsteveien Oslo Dato 18.07 kl. 13.28",
+  "amount": -300.0,
+  "category": "Cafe & bakery",
+  "needs_review": false
+ },
+ {
+  "description": "Varekjøp Rema Lorenveien Lørenveien 3 Oslo Dato 18.07 kl. 13.42",
+  "amount": -37.9,
+  "category": "Groceries",
+  "needs_review": false
+ },
+ {
+  "description": "Varekjøp Rema Majorstua Sørkedalsvei Oslo Dato 18.07 kl. 20.46",
+  "amount": -40.9,
+  "category": "Groceries",
+  "needs_review": false
+ },
+ {
+  "description": "Varekjøp Jysk N603 Hasle Bøkkeveien 4 Oslo Dato 18.07 kl. 11.17",
+  "amount": -1800.0,
+  "category": "Home & furniture",
+  "needs_review": false
+ },
+ {
+  "description": "Varekjøp Meny Løren (gln Lørenveien 4 Oslo Dato 18.07 kl. 13.17",
+  "amount": -168.52,
+  "category": "Groceries",
+  "needs_review": false
+ },
+ {
+  "description": "Visa  100021  Vipps:torkel Aalborg",
+  "amount": -265.0,
+  "category": "Vipps P2P - unspecified",
+  "needs_review": true
+ },
+ {
+  "description": "Visa  100121  Hasle Torg",
+  "amount": -50.0,
+  "category": "Groceries",
+  "needs_review": false
+ },
+ {
+  "description": "Overføring  91600000000 Ingvild Kvamme Berg Tpp: Vipps",
+  "amount": 78.5,
+  "category": "Vipps P2P - unspecified",
+  "needs_review": true
+ },
+ {
+  "description": "Giro  394 Sats Vest AS AvtalegiroSats Vest AS",
+  "amount": -394.0,
+  "category": "Gym & fitness",
+  "needs_review": false
+ },
+ {
+  "description": "Giro  393 Gjensidige Forsikring Asa AvtalegiroGjensidige Forsikring Asa",
+  "amount": -69.0,
+  "category": "Insurance",
+  "needs_review": false
+ },
+ {
+  "description": "Kontoregulering  382 Overføring Mellom Egne Konti",
+  "amount": -2000.0,
+  "category": "Internal transfer",
+  "needs_review": false
+ },
+ {
+  "description": "Overføring Innland  9170000000 Spotify Sindre Aalborg",
+  "amount": 44.0,
+  "category": "Subscriptions",
+  "needs_review": false
+ },
+ {
+  "description": "Varekjøp Avd.47 Baker No Børsteveien Oslo Dato 20.07 kl. 14.48",
+  "amount": -157.0,
+  "category": "Cafe & bakery",
+  "needs_review": false
+ },
+ {
+  "description": "Kontoregulering  397 Mobil Overføring",
+  "amount": -1700.0,
+  "category": "Internal transfer",
+  "needs_review": false
+ },
+ {
+  "description": "Kontoregulering  398 Mobil Overføring",
+  "amount": -16000.0,
+  "category": "Internal transfer",
+  "needs_review": false
+ },
+ {
+  "description": "Overføring Innland  396 Til : 99900011122 Mobil Betaling",
+  "amount": -4982.8,
+  "category": "Credit card payment",
+  "needs_review": false
+ },
+ {
+  "description": "Varekjøp Rema Lorenveien Lørenveien 3 Oslo Dato 20.07 kl. 19.04",
+  "amount": -223.2,
+  "category": "Groceries",
+  "needs_review": false
+ },
+ {
+  "description": "Innbetaling",
+  "amount": 4982.8,
+  "category": "Credit card payment",
+  "needs_review": false
+ },
+ {
+  "description": "Varekjøp Rema Lorenveien Lørenveien 3 Oslo Dato 21.07 kl. 14.15",
+  "amount": -55.1,
+  "category": "Groceries",
+  "needs_review": false
+ },
+ {
+  "description": "Varekjøp Blomsterpikenes Lørenveien 4 Oslo Dato 21.07 kl. 15.53",
+  "amount": -100.0,
+  "category": "Flowers & plants",
+  "needs_review": false
+ },
+ {
+  "description": "Varekjøp Rema Lorenveien Lørenveien 3 Oslo Dato 21.07 kl. 16.45",
+  "amount": -119.6,
+  "category": "Groceries",
+  "needs_review": false
+ },
+ {
+  "description": "Varekjøp Dios House Of b Ulvenveien 7 Oslo Dato 21.07 kl. 15.27",
+  "amount": -600.0,
+  "category": "Clothing & shoes",
+  "needs_review": false
+ },
+ {
+  "description": "Varekjøp Normal Oslo Vin Bøkkerveien Oslo Dato 21.07 kl. 15.46",
+  "amount": -56.0,
+  "category": "Personal care",
+  "needs_review": false
+ },
+ {
+  "description": "Visa  100021  Vipps:torkel Aalborg",
+  "amount": -210.0,
+  "category": "Vipps P2P - unspecified",
+  "needs_review": true
+ },
+ {
+  "description": "Overføring  91800000000 Ingvild Kvamme Berg Tpp: Vipps",
+  "amount": 260.0,
+  "category": "Vipps P2P - unspecified",
+  "needs_review": true
+ },
+ {
+  "description": "Kontoregulering  243 Ukespenger",
+  "amount": 2200.0,
+  "category": "Internal transfer",
+  "needs_review": false
+ },
+ {
+  "description": "Varekjøp Meny Telemarksp Prestemoen 6 Eidang Dato 22.07 kl. 14.28",
+  "amount": -504.28,
+  "category": "Groceries",
+  "needs_review": false
+ },
+ {
+  "description": "Overføring  91900000000 Ingvild Kvamme Berg IsTpp: Vipps",
+  "amount": 25.0,
+  "category": "Cafe & bakery",
+  "needs_review": false
+ },
+ {
+  "description": "Overføring  92000000000 Ingvild Kvamme Berg Tpp: Vipps",
+  "amount": 130.0,
+  "category": "Vipps P2P - unspecified",
+  "needs_review": true
+ },
+ {
+  "description": "Varekjøp Spar Drangedal Kåsmyra 3750 Dr.dal Dato 23.07 kl. 16.45",
+  "amount": -258.5,
+  "category": "Groceries",
+  "needs_review": false
+ },
+ {
+  "description": "Visa  100021  Vipps:toke Brygge Cafe Og",
+  "amount": -50.0,
+  "category": "Restaurants & takeaway",
+  "needs_review": false
+ },
+ {
+  "description": "Giro  921000000 Nordvest Teknikk AS",
+  "amount": 835.8,
+  "category": "Employer reimbursement",
+  "needs_review": true
+ },
+ {
+  "description": "Overføring  92200000000 Ingvild Kvamme Berg LadingTpp: Vipps",
+  "amount": 140.0,
+  "category": "Fuel & EV charging",
+  "needs_review": false
+ },
+ {
+  "description": "Varekjøp Mcd 082 Fokserødveie Sandefjord Dato 24.07 kl. 12.20",
+  "amount": -42.0,
+  "category": "Restaurants & takeaway",
+  "needs_review": false
+ },
+ {
+  "description": "Varekjøp Rema Lorenveien Lørenveien 3 Oslo Dato 24.07 kl. 19.16",
+  "amount": -65.6,
+  "category": "Groceries",
+  "needs_review": false
+ },
+ {
+  "description": "Visa  100021  Mer Norway AS",
+  "amount": -280.55,
+  "category": "Fuel & EV charging",
+  "needs_review": false
+ },
+ {
+  "description": "Visa  100121  Ecom Capital AS",
+  "amount": -210.0,
+  "category": "Uncategorised",
+  "needs_review": true
+ },
+ {
+  "description": "Visa  100221  Vipps:tor Bolle Waage",
+  "amount": -120.0,
+  "category": "Vipps P2P - unspecified",
+  "needs_review": true
+ },
+ {
+  "description": "Overføring  9230000000 Vetle Nyhus Dahl KinoTpp: Vipps Mobilepay AS",
+  "amount": -180.0,
+  "category": "Entertainment",
+  "needs_review": false
+ },
+ {
+  "description": "Overføring  92400000000 Ingvild Kvamme Berg Mat Og SnacksTpp: Vipps",
+  "amount": 100.0,
+  "category": "Groceries",
+  "needs_review": false
+ },
+ {
+  "description": "Giro  392 Statens Lånekasse For Utdannin AvtalegiroTerminbeløp Jul. 2026",
+  "amount": -2468.0,
+  "category": "Student loan",
+  "needs_review": false
+ },
+ {
+  "description": "Overføring Innland  401 Øyvind Stene Lunde BetalingTpp: Vipps Mobilepay AS",
+  "amount": -150.0,
+  "category": "Vipps P2P - unspecified",
+  "needs_review": true
+ },
+ {
+  "description": "Varekjøp Spar Dælenengga Dælenenggata Oslo Dato 25.07 kl. 17.39",
+  "amount": -148.6,
+  "category": "Groceries",
+  "needs_review": false
+ },
+ {
+  "description": "Varekjøp Rema Lorenveien Lørenveien 3 Oslo Dato 25.07 kl. 11.22",
+  "amount": -135.9,
+  "category": "Groceries",
+  "needs_review": false
+ },
+ {
+  "description": "Varekjøp Rema Lorenveien Lørenveien 3 Oslo Dato 25.07 kl. 12.44",
+  "amount": -35.9,
+  "category": "Groceries",
+  "needs_review": false
+ },
+ {
+  "description": "Varekjøp Plantehallen Av Lørenveien 6 Oslo Dato 26.07 kl. 16.35",
+  "amount": -200.0,
+  "category": "Flowers & plants",
+  "needs_review": false
+ },
+ {
+  "description": "Varekjøp Joker Hasle St. Jørgens Oslo Dato 26.07 kl. 15.11",
+  "amount": -35.28,
+  "category": "Groceries",
+  "needs_review": false
+ },
+ {
+  "description": "Varekjøp Tilt . Oslo Dato 26.07 kl. 18.38",
+  "amount": -262.0,
+  "category": "Bars & nightlife",
+  "needs_review": false
+ },
+ {
+  "description": "Varekjøp Circle k Økern Østre Aker v Oslo Dato 26.07 kl. 13.22",
+  "amount": -51.9,
+  "category": "Fuel & EV charging",
+  "needs_review": false
+ },
+ {
+  "description": "Varekjøp Bastard Burger Torggata 18 Oslo Dato 26.07 kl. 17.42",
+  "amount": -258.0,
+  "category": "Restaurants & takeaway",
+  "needs_review": false
+ },
+ {
+  "description": "Kontoregulering  245 Mobil Overføring",
+  "amount": 12785.0,
+  "category": "Internal transfer",
+  "needs_review": false
+ },
+ {
+  "description": "Kontoregulering  246 Mobil Overføring",
+  "amount": 800.0,
+  "category": "Internal transfer",
+  "needs_review": false
+ },
+ {
+  "description": "Overføring Innland  403 Nordvest Teknikk AS Mobil BetalingDividend Kasper Aalborg",
+  "amount": -800.0,
+  "category": "Employer loan repayment",
+  "needs_review": false
+ },
+ {
+  "description": "Varekjøp All In One AS Skjeringen Stavanger Dato 27.07 kl. 18.20",
+  "amount": -55.04,
+  "category": "Groceries",
+  "needs_review": false
+ },
+ {
+  "description": "Varekjøp Rema Lorenveien Lørenveien 3 Oslo Dato 27.07 kl. 18.07",
+  "amount": -176.6,
+  "category": "Groceries",
+  "needs_review": false
+ },
+ {
+  "description": "Overføring  92500000000 Ingvild Kvamme Berg MatTpp: Vipps",
+  "amount": 80.0,
+  "category": "Groceries",
+  "needs_review": false
+ },
+ {
+  "description": "Overføring  9260000000 Ingvild Kvamme Berg BokTpp: Vipps Mobilepay AS",
+  "amount": -166.0,
+  "category": "Gifts",
+  "needs_review": false
+ },
+ {
+  "description": "Overføring  92700000000 Ingvild Kvamme Berg Tpp: Vipps",
+  "amount": 141.5,
+  "category": "Vipps P2P - unspecified",
+  "needs_review": true
+ },
+ {
+  "description": "Overføring  92800000000 Torkel Aalborg BokTpp: Vipps",
+  "amount": 55.0,
+  "category": "Gifts",
+  "needs_review": false
+ },
+ {
+  "description": "Overføring Sindre Aalborg Gave Til MammaRef:",
+  "amount": 55.0,
+  "category": "Gifts",
+  "needs_review": false
+ },
+ {
+  "description": "Varekjøp Rema Lorenveien Lørenveien 3 Oslo Dato 28.07 kl. 16.27",
+  "amount": -63.9,
+  "category": "Groceries",
+  "needs_review": false
+ },
+ {
+  "description": "Visa  100021  Dominos",
+  "amount": -283.0,
+  "category": "Restaurants & takeaway",
+  "needs_review": false
+ },
+ {
+  "description": "Kontoregulering  244 Ukespenger",
+  "amount": 2200.0,
+  "category": "Internal transfer",
+  "needs_review": false
+ },
+ {
+  "description": "Varekjøp Rema Lorenveien Lørenveien 3 Oslo Dato 29.07 kl. 16.37",
+  "amount": -102.68,
+  "category": "Groceries",
+  "needs_review": false
+ },
+ {
+  "description": "Visa  100021  Zettle_:lege Midhat Re",
+  "amount": -299.0,
+  "category": "Health - doctor",
+  "needs_review": false
+ },
+ {
+  "description": "Varekjøp Kontroll_datter Grønland 10 Oslo Dato 30.07 kl. 18.28",
+  "amount": -194.0,
+  "category": "Bars & nightlife",
+  "needs_review": false
+ },
+ {
+  "description": "Varekjøp Kontroll_datter Grønland 10 Oslo Dato 30.07 kl. 19.07",
+  "amount": -112.0,
+  "category": "Bars & nightlife",
+  "needs_review": false
+ },
+ {
+  "description": "Mol*Hoome AS, 4799000000",
+  "amount": -13990.0,
+  "category": "Home & furniture",
+  "needs_review": false
+ },
+ {
+  "description": "BOLT.EU/P/9290000000, Tallinn, EST",
+  "amount": -25.0,
+  "category": "Taxi & ride-hailing",
+  "needs_review": false
+ },
+ {
+  "description": "MAULUND A/S, Risskov, DNK",
+  "amount": -298.0,
+  "category": "Uncategorised",
+  "needs_review": true
+ },
+ {
+  "description": "BOLT.EU/R/9300000000, Tallinn, EST",
+  "amount": -29.18,
+  "category": "Taxi & ride-hailing",
+  "needs_review": false
+ },
+ {
+  "description": "JOKER LØREN STA, Oslo",
+  "amount": -97.87,
+  "category": "Groceries",
+  "needs_review": false
+ },
+ {
+  "description": "Innbetaling",
+  "amount": 14440.05,
+  "category": "Credit card payment",
+  "needs_review": false
+ },
+ {
+  "description": "VOLT 285, Oslo",
+  "amount": -1022.5,
+  "category": "Clothing & shoes",
+  "needs_review": false
+ },
+ {
+  "description": "EURO SKO STORO, 0485 OSLO",
+  "amount": -999.0,
+  "category": "Clothing & shoes",
+  "needs_review": false
+ },
+ {
+  "description": "BOYS STORO, OSLO",
+  "amount": -449.4,
+  "category": "Clothing & shoes",
+  "needs_review": false
+ },
+ {
+  "description": "Vipps*Ingvild Kvamme B, Oslo",
+  "amount": -89.0,
+  "category": "Vipps P2P - unspecified",
+  "needs_review": true
+ },
+ {
+  "description": "VYGRUPPEN AS, OSLO",
+  "amount": -678.0,
+  "category": "Public transport",
+  "needs_review": false
+ },
+ {
+  "description": "JOKER LØREN STA, Oslo",
+  "amount": -163.7,
+  "category": "Groceries",
+  "needs_review": false
+ }
+]

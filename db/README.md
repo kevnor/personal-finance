@@ -1,32 +1,60 @@
 # Transaction database
 
-Self-contained SQLite database built from the statements in `../input/`.
-Standalone by necessity — the app in `client/` and `server/` has no source
-files, so this does not depend on it. `import.sql` / `transactions.csv` are
-here so the data can be moved into the real app once its code exists.
+SQLite database built from the statements in `../input/` by the pipeline in
+`server/`. `server/cli.py` wires together the ingest, categorisation, and
+derivation modules under `server/lib/`; this file documents the data itself —
+where it comes from, what the columns mean, and why the categorisation rules
+are shaped the way they are.
 
 ## Rebuild
 
 ```bash
-python3 db/import_transactions.py && python3 db/export.py
+python3 -m server.cli import
 ```
 
-Stdlib only (no openpyxl, no npm). Destructive and idempotent: it deletes
-`transactions.db` and rebuilds from the source spreadsheets every run, so
-categorisation rules are edited in `import_transactions.py`, never by hand
-in the database.
+Additive and idempotent — safe to re-run, and re-importing an overlapping
+statement period is a no-op.
+
+There are three places a categorisation can come from, and they are not
+interchangeable:
+
+| Where | What belongs there | Applies to |
+|---|---|---|
+| `server/lib/categorise.py` | Built-in pattern rules | Any row matching the pattern |
+| `merchant_rules` table (via `server/lib/rules.py`) | A mapping the user teaches by recategorising a row in the UI; wins over the built-in rules | Any future row matching the pattern |
+| `server/corrections.py` | One-off facts about *specific* payments that no pattern can express (decisions 7 and 8 below) | Exactly the rows it names |
+
+`merchant_rules` is empty in the live database today — nothing has been
+taught yet, since there is no UI. `server/corrections.py` is applied on every
+`import`, keyed on each row's own content and idempotent, so the corrections
+survive a fresh clone. They previously existed only as prose here plus a
+one-off `UPDATE`, which meant a rebuilt database quietly lacked them while
+still reconciling to 14 084,24 — neither correction changes the net.
 
 ## Files
 
-| File | What it is |
+| Path | What it is |
 |---|---|
-| `schema.sql` | Tables + the `v_spending` / `v_income` / `v_needs_review` views |
-| `import_transactions.py` | xlsx parser, categorisation rules, loan splitter |
-| `export.py` | Writes the CSV and SQL exports |
-| `transactions.db` | The database — 181 rows |
-| `transactions.csv` | Flat categorised export |
-| `needs_review.csv` | The 29 rows still needing a human decision (26 are memo-less Vipps) |
-| `import.sql` | Full `iterdump()`, for replaying into another database |
+| `db/migrations/` | Numbered SQL migrations, applied in filename order |
+| `server/lib/` | Ingest, categorisation, budget engine |
+| `server/cli.py` | `import` (writes) and `reconcile` (read-only) commands |
+| `data/transactions.db` | The live database — the only one any code writes (gitignored) |
+| `data/legacy-2026-08-22.db` | The original hand-built database (gitignored) — see below |
+
+### `data/legacy-2026-08-22.db`
+
+The database produced by the pre-app standalone script, kept as a provenance
+reference: it is the original hand-built database; the 48 `counterparty`
+values and hand corrections it contains are now reproducible from the
+statement pipeline.
+**No current code reads or writes it, and it must not be copied over
+`data/transactions.db`.** Its 181 rows predate content-fingerprint identity
+(migration 002 backfills `fingerprint = ''`, and 003's unique index
+deliberately excludes those rows), so importing into it would insert every
+statement row a second time — 362 rows, net 28 168,48, and stably wrong
+across repeated runs. `import` refuses to run against such a database
+(`store.require_fingerprinted_imports`) rather than producing that number
+quietly.
 
 ## Sources
 
@@ -48,9 +76,12 @@ spending and income views. `needs_review = 1` marks a row whose category is a
 guess or unknown.
 
 Because one source row can legitimately repeat (two coffees at the same shop
-on the same day, paid separately) row identity is
-`(batch_id, source_row, description, amount)` — not date+amount, which would
-silently discard real spending.
+on the same day, paid separately) row identity is a content fingerprint —
+a hash of account, date, description and amount — plus an occurrence index
+counting repeats of that same fingerprint within one import. Position in the
+sheet is deliberately excluded, since a re-export can reorder rows; identity
+by date+amount alone would silently discard real repeated spending. See
+`server/lib/ingest/fingerprint.py`.
 
 ## Categorisation decisions
 
@@ -83,11 +114,26 @@ silently discard real spending.
    Ingvild on 2026-07-28 carries the memo `Bok`, but the book was a present for
    the account holder's mother, split three ways with Sindre and Torkel (166 / 3
    = 55,33 each). Rules cannot infer purpose from a memo, so this and Torkel'
-   55 kr share are reassigned via the `CORRECTIONS` list in
-   `import_transactions.py`, which overrides rule output for rows the account
-   holder has confirmed. `Gifts` therefore nets to 56,00 — the account
-   holder's own share — and `Books` is now empty.
+   55 kr share are reassigned to `Gifts` by hand (see below). `Gifts`
+   therefore nets to 56,00 — the account holder's own share — and `Books` is
+   now empty.
+8. **The Hoome (phone) charge is reimbursable, not an expense.** It is paid
+   for by the account holder's employer, Nordvest Teknikk AS, so it is recorded via
+   `rules.mark_reimbursable` as a debt owed rather than recategorised —
+   marking a debt says nothing about whether the category itself is right.
 
-Add future one-off reclassifications to `CORRECTIONS` rather than editing the
-database, so they survive a rebuild. Each entry warns on stderr if it stops
-matching any row.
+One-off corrections that a rule cannot express — because they depend on
+context no description carries, like decisions 7 and 8 above — live in
+`server/corrections.py` and are applied by every `import`. Decision 8 uses
+`rules.mark_reimbursable`, which records a debt against a specific
+transaction. Decision 7 reassigns two named rows' categories directly. A
+merchant pattern (`rules.teach`) would be the wrong tool for either, since
+`Bok` genuinely does mean Books most of the time and Hoome genuinely is a
+furniture merchant — the correction is about these particular payments, not
+about future ones.
+
+Each correction is keyed on its row's own content (date, description,
+amount) rather than a row id, because ids are assigned by insertion order
+and mean nothing across databases. Re-applying is a no-op, and `import`
+reports how many were applied, were already in place, or named rows this
+database does not hold.

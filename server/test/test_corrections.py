@@ -1,0 +1,130 @@
+"""The two account-holder corrections, applied from code rather than by hand.
+
+They existed only in db/README's prose and in a heredoc that ran once
+against a gitignored database. A fresh clone plus `import` therefore
+produced a dataset missing both -- and still passed the 181-row /
+14 084,24 reconciliation, because neither correction changes the net.
+"""
+from pathlib import Path
+
+import pytest
+
+from server import cli, corrections
+from server.lib import rules, store
+
+ROOT = Path(__file__).resolve().parents[2]
+INPUT = ROOT / "input"
+MIGRATIONS = ROOT / "db" / "migrations"
+
+pytestmark = pytest.mark.skipif(
+    not (INPUT / "Kontoutskrift.xlsx").exists(),
+    reason="statements not present")
+
+BOK_INGVILD = ("Overføring  9260000000 Ingvild Kvamme Berg BokTpp:"
+              " Vipps Mobilepay AS")
+BOK_TORKEL = "Overføring  92800000000 Torkel Aalborg BokTpp: Vipps"
+PHONE = "Mol*Hoome AS, 4799000000"
+
+
+@pytest.fixture
+def con(tmp_path):
+    db = tmp_path / "t.db"
+    cli.build(db, INPUT, MIGRATIONS)
+    return store.connect(db)
+
+
+def category_of(con, description):
+    return con.execute(
+        "SELECT c.name FROM transactions t JOIN categories c"
+        " ON c.id = t.category_id WHERE t.description = ?",
+        (description,)).fetchone()["name"]
+
+
+def test_import_moves_both_bok_rows_to_gifts(con):
+    """A memo says what was bought, not why: the book was a present for the
+    account holder's mother, split three ways."""
+    assert category_of(con, BOK_INGVILD) == "Gifts"
+    assert category_of(con, BOK_TORKEL) == "Gifts"
+
+
+def test_books_is_empty_and_gifts_nets_to_the_account_holders_own_share(con):
+    """db/README decision 7: Gifts nets to 56,00 (166 out, two 55,00 shares
+    back) and Books is left empty."""
+    assert con.execute(
+        "SELECT COUNT(*) FROM transactions t JOIN categories c"
+        " ON c.id = t.category_id WHERE c.name = 'Books'").fetchone()[0] == 0
+    assert con.execute(
+        "SELECT ROUND(SUM(-t.amount), 2) FROM transactions t"
+        " JOIN categories c ON c.id = t.category_id"
+        " WHERE c.name = 'Gifts'").fetchone()[0] == 56.0
+
+
+def test_import_records_the_phone_as_a_debt_owed_by_the_employer(con):
+    owed = rules.outstanding(con)
+    assert len(owed) == 1
+    assert owed[0]["expected_from"] == "Nordvest Teknikk AS"
+    assert owed[0]["expected_amount"] == 13990.0
+    assert owed[0]["description"] == PHONE
+    assert con.execute(
+        "SELECT budget_override FROM transactions WHERE description = ?",
+        (PHONE,)).fetchone()[0] == "reimbursable"
+
+
+def test_the_phone_keeps_its_category_for_reporting(con):
+    """Marking a debt says nothing about whether the category is right, so
+    Home & furniture stays -- that is what makes it a reimbursement rather
+    than a recategorisation."""
+    assert category_of(con, PHONE) == "Home & furniture"
+
+
+def test_applying_twice_is_a_no_op(con):
+    first = corrections.apply(con)
+    assert first == {"applied": 0, "already": 3, "missing": 0}
+    second = corrections.apply(con)
+    assert second == first
+    assert len(rules.outstanding(con)) == 1
+    assert category_of(con, BOK_INGVILD) == "Gifts"
+
+
+def test_a_fresh_build_reports_the_corrections_it_applied(tmp_path):
+    result = cli.build(tmp_path / "t.db", INPUT, MIGRATIONS)
+    assert result["corrections"] == {"applied": 3, "already": 0, "missing": 0}
+    # ... and a second import finds nothing left to do.
+    again = cli.build(tmp_path / "t.db", INPUT, MIGRATIONS)
+    assert again["corrections"] == {"applied": 0, "already": 3, "missing": 0}
+
+
+def test_the_corrections_change_neither_the_row_count_nor_the_net(tmp_path):
+    """Which is exactly why their absence went unnoticed: the reconciliation
+    invariant cannot see them."""
+    result = cli.build(tmp_path / "t.db", INPUT, MIGRATIONS)
+    assert (result["count"], result["net"]) == (181, 14084.24)
+
+
+def test_missing_rows_are_counted_rather_than_raised(tmp_path):
+    """Corrections are dataset-specific; a partial import is a legitimate
+    state, but a silent no-op must still be visible in the output."""
+    partial = tmp_path / "input"
+    partial.mkdir()
+    (partial / "transaksjonsliste.xlsx").write_bytes(
+        (INPUT / "transaksjonsliste.xlsx").read_bytes())
+    result = cli.build(tmp_path / "t.db", partial, MIGRATIONS)
+    assert result["corrections"]["missing"] == 2   # the two Vipps Bok rows
+    assert result["corrections"]["applied"] == 1   # the phone is on this card
+
+
+def test_an_ambiguous_correction_key_is_refused(con):
+    """Content-keyed corrections must name exactly one row. A duplicate would
+    otherwise silently recategorise whichever row SQLite returned first."""
+    row = con.execute(
+        "SELECT * FROM transactions WHERE description = ?",
+        (BOK_INGVILD,)).fetchone()
+    con.execute(
+        "INSERT INTO transactions (date, account_id, description, amount,"
+        " category_id, batch_id, source_row, fingerprint, occurrence)"
+        " VALUES (?,?,?,?,?,?,?,?,?)",
+        (row["date"], row["account_id"], row["description"], row["amount"],
+         row["category_id"], row["batch_id"], 9999, "dupfp", 1))
+    con.commit()
+    with pytest.raises(LookupError):
+        corrections.apply(con)
