@@ -21,6 +21,13 @@
 
 const KEY = "pf.signed-in";
 
+// How this browser last signed in, when it did. Only an Entra session can be
+// renewed without the user typing anything, so this is what decides whether a
+// lapsed session is worth one silent round trip through the directory or is
+// simply the login screen. Cleared with the note above, so signing out is not
+// instantly undone by a renewal.
+const SOURCE_KEY = "pf.signed-in-via";
+
 // Storage can be unavailable (private mode, disabled site data) and throws
 // rather than returning null. The app must work without it — it simply loses
 // the offline fallback.
@@ -32,10 +39,15 @@ function storage() {
   }
 }
 
-export function rememberSignedIn(signedIn) {
+export function rememberSignedIn(signedIn, source) {
   try {
-    if (signedIn) storage()?.setItem(KEY, "1");
-    else storage()?.removeItem(KEY);
+    if (signedIn) {
+      storage()?.setItem(KEY, "1");
+      if (source) storage()?.setItem(SOURCE_KEY, source);
+    } else {
+      storage()?.removeItem(KEY);
+      storage()?.removeItem(SOURCE_KEY);
+    }
   } catch {
     /* not fatal: the offline fallback is an enhancement */
   }
@@ -46,5 +58,20 @@ export function wasSignedIn() {
     return storage()?.getItem(KEY) === "1";
   } catch {
     return false;
+  }
+}
+
+/**
+ * How this browser last signed in, or null.
+ *
+ * Not an authentication decision either: it says what to *try*, and the
+ * attempt is still adjudicated by Entra and by the server. A stale "entra"
+ * here costs one redirect that comes back `login_required`.
+ */
+export function signedInVia() {
+  try {
+    return storage()?.getItem(SOURCE_KEY) ?? null;
+  } catch {
+    return null;
   }
 }

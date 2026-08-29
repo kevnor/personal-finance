@@ -7,7 +7,7 @@ from typing import Iterator
 
 from fastapi import Depends, HTTPException, Request, status
 
-from server import security
+from server import entra, security
 from server.lib import local, store
 from server.settings import Settings
 
@@ -22,6 +22,16 @@ def get_passcodes(request: Request) -> security.PasscodeStore:
 
 def get_rate_limiter(request: Request) -> security.RateLimiter:
     return request.app.state.rate_limiter
+
+
+def get_entra(request: Request) -> "entra.Client | None":
+    """The Entra client, or None when no app registration is configured.
+
+    None is the ordinary state, not a broken one: an instance with no
+    registration is passcode-only, which is what the repository ships as and
+    what every test that does not care about federation runs as.
+    """
+    return request.app.state.entra
 
 
 def today(settings: Settings = Depends(get_settings)) -> datetime.date:

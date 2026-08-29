@@ -14,7 +14,7 @@ from fastapi import Depends, FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from server import security
+from server import entra, security
 from server.deps import require_session
 from server.lib import budget, categorise, store
 from server.routes import (auth, budget as budget_routes, categories, imports,
@@ -84,6 +84,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.settings = settings
     app.state.passcodes = security.PasscodeStore(settings.passcode_file)
     app.state.rate_limiter = security.RateLimiter()
+    # Built once, because it caches the tenant's discovery document and
+    # signing keys; None when no registration is configured, which is what
+    # makes every Entra route answer 409 rather than 500 on a passcode-only
+    # instance.
+    app.state.entra = (entra.Client(settings.entra)
+                       if settings.entra is not None else None)
 
     app.include_router(auth.router)
     for router in PROTECTED_ROUTERS:

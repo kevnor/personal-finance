@@ -14,13 +14,16 @@ def test_status_before_anything_is_configured(anon):
     """The client needs this to choose between the first-run setup screen,
     the login screen, and the app -- so it must answer without a session."""
     assert anon.get("/api/auth/status").json() == {
-        "configured": False, "authenticated": False}
+        "configured": False, "authenticated": False,
+        "entra_available": False, "source": None}
 
 
 def test_setting_the_passcode_signs_you_in(anon):
     response = anon.post("/api/auth/passcode", json={"passcode": PASSCODE})
     assert response.status_code == 201
-    assert response.json() == {"configured": True, "authenticated": True}
+    assert response.json() == {
+            "configured": True, "authenticated": True,
+            "entra_available": False, "source": "passcode"}
     assert anon.get("/api/auth/status").json()["authenticated"] is True
 
 

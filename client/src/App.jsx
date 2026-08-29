@@ -6,7 +6,7 @@ import { AppDataProvider, buildAppData } from "./context/AppData.jsx";
 import { useOnline } from "./hooks/useOnline.js";
 import { useResource } from "./hooks/useResource.js";
 import { api } from "./lib/api.js";
-import { rememberSignedIn, wasSignedIn } from "./lib/session.js";
+import { rememberSignedIn, signedInVia, wasSignedIn } from "./lib/session.js";
 import Home from "./pages/Home.jsx";
 import History from "./pages/History.jsx";
 import Login from "./pages/Login.jsx";
@@ -36,8 +36,36 @@ export default function App() {
   // Record the answer whenever the server gives one, so there is something to
   // fall back on when it cannot be reached.
   useEffect(() => {
-    if (auth.data) rememberSignedIn(auth.data.authenticated);
+    if (auth.data) rememberSignedIn(auth.data.authenticated, auth.data.source);
   }, [auth.data]);
+
+  // Why the app came back here, when it came back from Entra. `required`
+  // means a silent renewal could not be completed without showing the user
+  // something -- their directory session lapsed, or they are no longer
+  // assigned -- so it is a prompt rather than an error.
+  const notice = new URLSearchParams(window.location.search).get("signin");
+
+  // An Entra session lasts an hour, so it lapses during ordinary use. Rather
+  // than dropping the user on a login screen, spend one round trip asking the
+  // directory to confirm them without interaction. Only worth attempting when
+  // this browser signed in that way to begin with -- after an explicit
+  // sign-out the note is cleared, so logging out is not instantly undone.
+  //
+  // `notice` is the loop guard: arriving back with one means the attempt has
+  // already been made and did not succeed, and retrying would spin.
+  const renewing =
+    auth.data?.authenticated === false &&
+    auth.data?.entra_available === true &&
+    signedInVia() === "entra" &&
+    !notice;
+
+  useEffect(() => {
+    if (!renewing) return;
+    const here = window.location.pathname + window.location.search;
+    window.location.assign(
+      `/api/auth/entra/login?silent=true&next=${encodeURIComponent(here)}`,
+    );
+  }, [renewing]);
 
   // The server could not be reached at all (status 0, not an HTTP error). The
   // worker never caches auth state -- a cached `authenticated: true` would
@@ -51,7 +79,9 @@ export default function App() {
 
   const signedIn = session ?? auth.data?.authenticated ?? false;
 
-  if (auth.loading && !auth.data) return <Shell><Loading /></Shell>;
+  // Mid-renewal the browser is already navigating away; a login screen drawn
+  // for the intervening frame would flash and then vanish.
+  if (renewing || (auth.loading && !auth.data)) return <Shell><Loading /></Shell>;
   if (auth.error) return <Shell><ErrorState error={auth.error} onRetry={auth.reload} /></Shell>;
 
   if (!signedIn) {
@@ -59,8 +89,10 @@ export default function App() {
       <Shell>
         <Login
           configured={auth.data?.configured ?? false}
+          entraAvailable={auth.data?.entra_available ?? false}
+          notice={notice}
           onSignedIn={() => {
-            rememberSignedIn(true);
+            rememberSignedIn(true, "passcode");
             setSession(true);
             changed();
           }}

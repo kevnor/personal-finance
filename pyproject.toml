@@ -21,6 +21,16 @@ dependencies = [
     "uvicorn[standard]>=0.27",
     "argon2-cffi>=23",
     "python-multipart>=0.0.9",   # statement upload is multipart/form-data
+    # Entra sign-in. Only the ID token's signature needs verifying, and the
+    # authorization-code flow would technically permit skipping even that --
+    # the token arrives over this process's own TLS connection to Microsoft.
+    # It is verified anyway, because that shortcut is sound only until
+    # somebody moves the token onto the front channel, and hand-rolled RS256
+    # verification is not a thing to own. `[crypto]` pulls in cryptography,
+    # which ships wheels for the platforms the Dockerfile targets, so this
+    # still needs no build toolchain. The HTTP calls use urllib rather than
+    # adding a client: there are two of them.
+    "pyjwt[crypto]>=2.7",
 ]
 
 [tool.setuptools]
