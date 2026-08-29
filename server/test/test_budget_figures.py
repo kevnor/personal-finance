@@ -152,3 +152,57 @@ def test_figures_splits_before_and_today_spending_correctly(con):
     f = budget.figures(con, datetime.date(2026, 7, 15), cfg, pools)
     assert f.today_spent == 600.0
     assert f.week_spent == 900.0
+
+
+# -- summarise(): the assembly nothing outside the tests used to do ---------
+
+def test_summarise_covers_every_month_the_week_touches(con):
+    """`daily_rate` returns 0.0 for a month it has no pool for, so a week
+    straddling a month boundary would silently value the far side's days at
+    nothing. summarise is what guarantees both months are present."""
+    summary = budget.summarise(con, datetime.date(2026, 6, 30))
+    assert sorted(summary.pools) == ["2026-06", "2026-07"]
+    assert summary.week_start == datetime.date(2026, 6, 29)
+    assert summary.week_end == datetime.date(2026, 7, 5)
+
+
+def test_summarise_within_one_month_builds_one_pool(con):
+    summary = budget.summarise(con, datetime.date(2026, 7, 15))
+    assert sorted(summary.pools) == ["2026-07"]
+
+
+def test_summarise_matches_calling_the_parts_by_hand(con):
+    """The convenience wrapper must not quietly compute something else."""
+    day = datetime.date(2026, 7, 15)
+    config = budget.load_config(con, day)
+    pools = budget.pools_for(
+        con, config,
+        budget.months_spanned(budget.week_bounds(day, config.week_starts_on)[0]))
+
+    summary = budget.summarise(con, day)
+    assert summary.config == config
+    assert summary.pools == pools
+    assert summary.figures == budget.figures(con, day, config, pools)
+
+
+def test_a_straddling_week_values_each_day_at_its_own_months_rate(con):
+    """Picking one month's rate for the whole week makes the last week of a
+    month disagree with the first week of the next about what a day is worth.
+    """
+    summary = budget.summarise(con, datetime.date(2026, 6, 30))
+    june = summary.pools["2026-06"].amount / 30
+    july = summary.pools["2026-07"].amount / 31
+    # 29 and 30 June, then 1-5 July.
+    expected = round(june * 2 + july * 5, 2)
+    assert summary.figures.week_envelope == expected
+
+
+def test_months_spanned_is_one_month_for_a_week_inside_one(con):
+    assert budget.months_spanned(datetime.date(2026, 7, 13)) == ["2026-07"]
+    assert budget.months_spanned(datetime.date(2026, 6, 29)) == [
+        "2026-06", "2026-07"]
+
+
+def test_summary_reports_estimated_while_any_month_is_a_manual_figure(con):
+    summary = budget.summarise(con, datetime.date(2026, 7, 15))
+    assert summary.estimated is any(p.estimated for p in summary.pools.values())

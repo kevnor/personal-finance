@@ -75,7 +75,11 @@ RULES = [
     (r"joker",                              "Groceries", 0),
     # --- eating out ----------------------------------------------------------
     (r"narvesen|7-eleven|deli de luca",     "Convenience & kiosk", 0),
-    (r"proud mary|baker no|\bkb37\b|gr.d",  "Cafe & bakery", 0),
+    # `gr.d` here matched any "gr<any>d": it caught "Porsgr Dato" in a
+    # Circle K line, booking a fuel purchase as a cafe visit -- and it
+    # is tested before the `circle k` rule, so first-match-wins made the
+    # fuel rule unreachable for that row. Anchored to the merchant name.
+    (r"proud mary|baker no|\bkb37\b|\bgr[øo]d\b", "Cafe & bakery", 0),
     (r"dominos|burger king|bastard burger", "Restaurants & takeaway", 0),
     (r"\bmcd\b|kebab|fly chicken|sumo",     "Restaurants & takeaway", 0),
     (r"veikroa|toke brygge",                "Restaurants & takeaway", 0),

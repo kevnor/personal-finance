@@ -11,7 +11,7 @@ from __future__ import annotations
 import calendar
 import datetime
 import sqlite3
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 
 
@@ -259,3 +259,56 @@ def figures(con: sqlite3.Connection, day: datetime.date, config: Config,
         (day - datetime.timedelta(days=1)).isoformat()) if day > start else 0.0
     today = _variable_spent(con, day.isoformat(), day.isoformat())
     return figures_from(envelope, before, today, (end - day).days + 1)
+
+
+# --- assembling the whole picture ------------------------------------------
+
+@dataclass(frozen=True)
+class Summary:
+    """Everything the home screen needs for one day."""
+    day: datetime.date
+    week_start: datetime.date
+    week_end: datetime.date
+    config: Config
+    pools: dict[str, Pool]
+    figures: Figures
+
+    @property
+    def estimated(self) -> bool:
+        """True while any month in view is running on a manual figure rather
+        than a derived one -- the cold-start state the spec calls out."""
+        return any(pool.estimated for pool in self.pools.values())
+
+
+def months_spanned(week_start: datetime.date) -> list[str]:
+    """The `YYYY-MM` keys a week touches -- one, or two across a boundary."""
+    return sorted({(week_start + datetime.timedelta(days=i)).strftime("%Y-%m")
+                   for i in range(7)})
+
+
+def pools_for(con: sqlite3.Connection, config: Config,
+              months: Iterable[str]) -> dict[str, Pool]:
+    return {month: month_pool(con, month, config) for month in months}
+
+
+def summarise(con: sqlite3.Connection, day: datetime.date) -> Summary:
+    """Load the config, build the pools the week needs, and report.
+
+    This is the seam every caller wants: the engine's parts each take a piece
+    of state someone else has to assemble, and until now nothing outside the
+    tests assembled it -- `month_pool` and `figures` had no production caller
+    at all. Building the pool map here is also what keeps `daily_rate` honest:
+    it returns 0.0 for a month it has no pool for, so a week straddling a
+    month boundary would silently value the days on the far side at nothing
+    unless every month the week touches is present.
+    """
+    config = load_config(con, day)
+    week_start, week_end = week_bounds(day, config.week_starts_on)
+    pools = pools_for(con, config, months_spanned(week_start))
+    return Summary(
+        day=day,
+        week_start=week_start,
+        week_end=week_end,
+        config=config,
+        pools=pools,
+        figures=figures(con, day, config, pools))

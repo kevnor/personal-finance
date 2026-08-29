@@ -129,3 +129,90 @@ def test_budget_config_defaults_week_to_monday(con):
         " VALUES ('2026-01-01', 'manual', 'manual', 5000.0)")
     assert con.execute(
         "SELECT week_starts_on FROM budget_config").fetchone()[0] == 1
+
+
+# -- checksums and sequence integrity ---------------------------------------
+
+def test_migration_numbers_are_contiguous_with_no_gaps():
+    """A gap is a schema-divergence hazard: migrations are skipped by name but
+    ordered by filename, so a migration later dropped into a gap runs at a
+    different point on a fresh database than on an existing one. 004 was
+    skipped once already and is now held by an inert placeholder."""
+    numbers = sorted(int(p.name[:3]) for p in MIGRATIONS.glob("*.sql"))
+    assert numbers == list(range(1, len(numbers) + 1)), (
+        f"migration numbers are not contiguous: {numbers}")
+
+
+def test_every_migration_is_recorded_with_its_checksum(tmp_path):
+    con = store.connect(tmp_path / "t.db")
+    store.migrate(con, MIGRATIONS)
+    recorded = dict(con.execute(
+        "SELECT name, checksum FROM schema_migrations"))
+    for path in MIGRATIONS.glob("*.sql"):
+        assert recorded[path.name] == store.checksum(
+            path.read_text(encoding="utf-8"))
+
+
+def test_editing_an_applied_migration_is_refused(tmp_path):
+    """Silently ignoring the edit is the bad outcome: the change reaches a
+    freshly built database and never reaches this one, and the two diverge
+    with nothing to show for it."""
+    directory = tmp_path / "m"
+    directory.mkdir()
+    script = directory / "001_x.sql"
+    script.write_text("CREATE TABLE a (id INTEGER PRIMARY KEY);\n",
+                      encoding="utf-8")
+
+    con = store.connect(tmp_path / "t.db")
+    assert store.migrate(con, directory) == ["001_x.sql"]
+
+    script.write_text(
+        "CREATE TABLE a (id INTEGER PRIMARY KEY, extra TEXT);\n",
+        encoding="utf-8")
+    with pytest.raises(store.MigrationError) as exc:
+        store.migrate(con, directory)
+    assert "001_x.sql" in str(exc.value)
+
+
+def test_whitespace_only_line_ending_changes_do_not_trip_the_checksum(tmp_path):
+    """A file checked out with CRLF endings is the same migration."""
+    directory = tmp_path / "m"
+    directory.mkdir()
+    script = directory / "001_x.sql"
+    script.write_text("CREATE TABLE a (id INTEGER);\n", encoding="utf-8")
+
+    con = store.connect(tmp_path / "t.db")
+    store.migrate(con, directory)
+
+    script.write_bytes(b"CREATE TABLE a (id INTEGER);\r\n")
+    assert store.migrate(con, directory) == []      # no error, nothing to do
+
+
+def test_a_database_migrated_before_checksums_existed_still_works(tmp_path):
+    """Rows recorded by the previous runner carry no checksum. They must be
+    left alone rather than read as a mismatch."""
+    con = store.connect(tmp_path / "t.db")
+    store.migrate(con, MIGRATIONS)
+    con.execute("UPDATE schema_migrations SET checksum = NULL")
+    con.commit()
+
+    assert store.migrate(con, MIGRATIONS) == []
+
+
+def test_connection_uses_wal_and_a_busy_timeout(tmp_path):
+    """Both are what lets a reader and the writer coexist; under the default
+    rollback journal a report running during an import fails outright."""
+    con = store.connect(tmp_path / "t.db")
+    assert con.execute("PRAGMA journal_mode").fetchone()[0] == "wal"
+    assert con.execute(
+        "PRAGMA busy_timeout").fetchone()[0] == store.BUSY_TIMEOUT_MS
+
+
+def test_a_read_only_connection_still_gets_the_busy_timeout(tmp_path):
+    """It cannot set journal_mode -- that is a property of the file, set by
+    the first writer -- but it must still wait for a lock rather than raise."""
+    db = tmp_path / "t.db"
+    store.migrate(store.connect(db), MIGRATIONS)
+    con = store.connect(db, read_only=True)
+    assert con.execute(
+        "PRAGMA busy_timeout").fetchone()[0] == store.BUSY_TIMEOUT_MS
