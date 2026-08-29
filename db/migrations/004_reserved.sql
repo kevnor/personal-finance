@@ -1,0 +1,12 @@
+-- Reserved: this number was skipped during development and never existed.
+--
+-- Left inert rather than left empty, because a gap in the sequence is a
+-- schema-divergence hazard. `store.migrate` skips a migration by *name* but
+-- orders by *filename*, so a real 004 added later would run fourth on a
+-- freshly built database and last on one that already recorded 005 and 006 --
+-- two databases with the same migration set and a different application
+-- order. Claiming the slot with a no-op closes that off.
+--
+-- New migrations take the next unused number. Never backfill a gap.
+-- `test_migrations.py` asserts the sequence stays contiguous.
+SELECT 1 WHERE 0;

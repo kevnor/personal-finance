@@ -119,3 +119,21 @@ def test_categories_that_must_not_fall_back_to_variable_are_listed():
     assert treatment["Mortgage - interest"] == "fixed"
     assert treatment["Mortgage - fees"] == "fixed"
     assert treatment["Groceries"] == "variable"
+
+
+def test_grod_rule_does_not_swallow_a_circle_k_line():
+    """Regression: the Cafe & bakery rule spelled the Grød branch `gr.d`, so
+    any "gr<any>d" matched -- including "Porsgr Dato" in a Circle K fuel line
+    ("...Prestmoen 4 Porsgr Dato 04.07..."). Because Cafe & bakery is tested
+    before `circle k` and first match wins, the fuel rule was unreachable for
+    that row and a fuel purchase was booked as a cafe visit."""
+    assert categorise.categorise(
+        "Varekjøp Circle k Telema Prestmoen 4 Porsgr Dato 04.07 kl. 10.36"
+    ).category == "Fuel & EV charging"
+    # The branch still does its job for the merchant it was written for.
+    assert categorise.categorise(
+        "Varekjøp Grød Markveien Markveien 67 Oslo Dato 05.07 kl. 12.34"
+    ).category == "Cafe & bakery"
+    # ... and no longer fires on an ordinary name that happens to contain it.
+    assert categorise.categorise(
+        "Vipps*Ingrid Hovden, Oslo").category == "Vipps P2P - unspecified"

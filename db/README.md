@@ -15,6 +15,22 @@ python3 -m server.cli import
 Additive and idempotent — safe to re-run, and re-importing an overlapping
 statement period is a no-op.
 
+## Migrations
+
+Applied in filename order, recorded by name together with a content
+checksum. Two rules follow from how that works:
+
+- **Never edit an applied migration.** It is skipped by name, so the edit
+  reaches a freshly built database and never reaches an existing one. The
+  runner refuses rather than letting the two diverge silently; add a new
+  migration instead.
+- **Never backfill a gap in the numbering.** Migrations are skipped by name
+  but *ordered* by filename, so a migration dropped into a gap runs at a
+  different point on a fresh database than on one that already recorded the
+  later numbers. `004_reserved.sql` is an inert placeholder holding a number
+  that was skipped during development; `test_migrations.py` asserts the
+  sequence stays contiguous.
+
 There are three places a categorisation can come from, and they are not
 interchangeable:
 
@@ -37,7 +53,7 @@ still reconciling to 14 084,24 — neither correction changes the net.
 |---|---|
 | `db/migrations/` | Numbered SQL migrations, applied in filename order |
 | `server/lib/` | Ingest, categorisation, budget engine |
-| `server/cli.py` | `import` (writes) and `reconcile` (read-only) commands |
+| `server/cli.py` | `import` (writes); `reconcile` and `budget` (read-only) |
 | `data/transactions.db` | The live database — the only one any code writes (gitignored) |
 | `data/legacy-2026-08-22.db` | The original hand-built database (gitignored) — see below |
 
@@ -109,6 +125,12 @@ by date+amount alone would silently discard real repeated spending. See
 6. **Merchants identified by the account holder:** VOLT 285 → Clothing &
    shoes; All In One AS and Hasle Torg → Groceries. `MAULUND A/S` (298) and
    `Ecom Capital AS` (210) remain unidentified and stay flagged.
+
+   One Circle K purchase used to land in `Cafe & bakery` instead of
+   `Fuel & EV charging`: the cafe rule spelled its Grød branch `gr.d`, which
+   matched the `Porsgr Dato` in that line's address, and the cafe rule is
+   tested before `circle k`, so first-match-wins made the fuel rule
+   unreachable for it. The branch is now anchored to the merchant name.
 
 7. **A memo says what was bought, not why.** The 166 kr Vipps payment to
    Ingvild on 2026-07-28 carries the memo `Bok`, but the book was a present for

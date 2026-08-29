@@ -119,6 +119,53 @@ def reconcile(db_path) -> dict:
     return {"count": count, "net": net, "needs_review": flagged}
 
 
+def budget_report(db_path, on_date: datetime.date | None = None) -> budget.Summary:
+    """Report the weekly envelope for `on_date`. Writes nothing.
+
+    Read-only for the same reason `reconcile` is: reporting must not change a
+    schema or a row. Until now nothing outside the tests called the budget
+    engine at all -- `month_pool` and `figures` each take a piece of state
+    someone else has to assemble, and no caller assembled it -- so the
+    envelope the whole app is built around could not actually be asked for.
+    """
+    path = Path(db_path)
+    if not path.exists():
+        raise FileNotFoundError(
+            f"no database at {path}. `budget` reports an existing database"
+            " and never creates one -- run `import` first.")
+
+    con = store.connect(path, read_only=True)
+    try:
+        return budget.summarise(con, on_date or datetime.date.today())
+    finally:
+        con.close()
+
+
+def format_budget(summary: budget.Summary) -> str:
+    figures = summary.figures
+    lines = [
+        f"{summary.day} · week {summary.week_start} to {summary.week_end}",
+        f"  today:  {figures.today_remaining:.2f} left"
+        f" of {figures.today_allowance:.2f}"
+        f" (spent {figures.today_spent:.2f})",
+        f"  week:   {figures.week_remaining:.2f} left"
+        f" of {figures.week_envelope:.2f}"
+        f" (spent {figures.week_spent:.2f},"
+        f" {figures.days_left} days to go)",
+    ]
+    # One line per month the week touches -- two across a boundary, where the
+    # days on either side are genuinely worth different amounts.
+    for month, pool in sorted(summary.pools.items()):
+        lines.append(
+            f"  {month}: pool {pool.amount:.2f}"
+            f" = income {pool.income:.2f}"
+            f" - fixed {pool.fixed:.2f}"
+            f" - committed {pool.committed:.2f}"
+            f" - savings {pool.savings:.2f}"
+            + ("  [estimated]" if pool.estimated else ""))
+    return "\n".join(lines)
+
+
 def main(argv: list[str] | None = None) -> int:
     root = Path(__file__).resolve().parents[1]
     parser = argparse.ArgumentParser(prog="server.cli")
@@ -137,9 +184,19 @@ def main(argv: list[str] | None = None) -> int:
     importer.add_argument("--input", default=str(root / "input"))
     add_common(sub.add_parser(
         "reconcile", help="report an existing database; writes nothing"))
+    reporter = sub.add_parser(
+        "budget", help="report the weekly envelope; writes nothing")
+    reporter.add_argument("--db", default=str(root / "data" / "transactions.db"))
+    reporter.add_argument(
+        "--date", type=datetime.date.fromisoformat, default=None,
+        metavar="YYYY-MM-DD",
+        help="the day to report on (default: today)")
 
     args = parser.parse_args(argv)
     try:
+        if args.command == "budget":
+            print(format_budget(budget_report(args.db, args.date)))
+            return 0
         if args.command == "import":
             Path(args.db).parent.mkdir(parents=True, exist_ok=True)
             result = build(args.db, args.input, root / "db" / "migrations")
@@ -156,7 +213,12 @@ def main(argv: list[str] | None = None) -> int:
             print(f"{result['count']} transactions, net {result['net']:.2f}")
             print(f"  {result['needs_review']} need review;"
                   " read-only, nothing written")
-    except (FileNotFoundError, store.LegacyDataError) as exc:
+    # LookupError covers a database with no budget_config in force -- one not
+    # built by `import`, which seeds it. MigrationError covers a migration
+    # edited after it was applied. Both are the user's to fix, so they get the
+    # same one-line message as a mistyped path rather than a traceback.
+    except (FileNotFoundError, LookupError,
+            store.LegacyDataError, store.MigrationError) as exc:
         print(f"ERROR: {exc}")
         return 2
 

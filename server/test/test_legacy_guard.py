@@ -12,10 +12,21 @@ import pytest
 
 from server import cli
 from server.lib import store
+from server.test.fixtures import statements
 
 ROOT = Path(__file__).resolve().parents[2]
-INPUT = ROOT / "input"
 MIGRATIONS = ROOT / "db" / "migrations"
+
+
+@pytest.fixture
+def input_dir(tmp_path):
+    """A drop-zone of synthetic statements under the filenames cli reads.
+
+    These three tests used to require the real (gitignored) statements, so
+    the guard's whole refusal path -- the part that actually prevents a
+    silently doubled dataset -- never ran in CI.
+    """
+    return statements.write_input_dir(tmp_path / "input")
 
 
 def legacy_db(tmp_path, rows=3, origin=None, migrated=True):
@@ -88,9 +99,8 @@ def test_guard_fires_on_a_pre_002_schema_with_no_fingerprint_column(tmp_path):
         store.require_fingerprinted_imports(con)
 
 
-@pytest.mark.skipif(not (INPUT / "Kontoutskrift.xlsx").exists(),
-                    reason="statements not present")
-def test_import_refuses_a_legacy_database_without_altering_its_schema(tmp_path):
+def test_import_refuses_a_legacy_database_without_altering_its_schema(
+        tmp_path, input_dir):
     """The guard runs before migrate, so a database this refuses is left
     exactly as it was found -- not silently upgraded on the way to a
     refusal."""
@@ -100,7 +110,7 @@ def test_import_refuses_a_legacy_database_without_altering_its_schema(tmp_path):
     con.close()
 
     with pytest.raises(store.LegacyDataError):
-        cli.build(tmp_path / "legacy.db", INPUT, MIGRATIONS)
+        cli.build(tmp_path / "legacy.db", input_dir, MIGRATIONS)
 
     after = store.connect(tmp_path / "legacy.db")
     assert {r[0] for r in after.execute(
@@ -115,28 +125,27 @@ def test_guard_is_silent_on_an_empty_database(tmp_path):
     store.require_fingerprinted_imports(con)
 
 
-@pytest.mark.skipif(not (INPUT / "Kontoutskrift.xlsx").exists(),
-                    reason="statements not present")
-def test_import_refuses_a_legacy_database_instead_of_doubling_it(tmp_path):
+def test_import_refuses_a_legacy_database_instead_of_doubling_it(
+        tmp_path, input_dir):
     con = legacy_db(tmp_path)
     con.close()
     db = tmp_path / "legacy.db"
 
     with pytest.raises(store.LegacyDataError):
-        cli.build(db, INPUT, MIGRATIONS)
+        cli.build(db, input_dir, MIGRATIONS)
 
     check = store.connect(db)
     assert check.execute(
         "SELECT COUNT(*) FROM transactions").fetchone()[0] == 3
 
 
-@pytest.mark.skipif(not (INPUT / "Kontoutskrift.xlsx").exists(),
-                    reason="statements not present")
-def test_guard_does_not_block_a_database_this_pipeline_built(tmp_path):
+def test_guard_does_not_block_a_database_this_pipeline_built(
+        tmp_path, input_dir):
     """Every row the current importer writes carries a fingerprint, so a
     second import must still be the ordinary no-op."""
     db = tmp_path / "t.db"
-    cli.build(db, INPUT, MIGRATIONS)
-    second = cli.build(db, INPUT, MIGRATIONS)
+    first = cli.build(db, input_dir, MIGRATIONS)
+    second = cli.build(db, input_dir, MIGRATIONS)
     assert second["inserted"] == 0
-    assert second["count"] == 181
+    assert second["skipped"] == first["inserted"]
+    assert second["count"] == first["count"]

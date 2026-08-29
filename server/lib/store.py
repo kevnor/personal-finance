@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import datetime
+import hashlib
 import sqlite3
 from collections.abc import Callable, Iterable, Mapping
 from pathlib import Path
@@ -14,6 +15,15 @@ class LegacyDataError(RuntimeError):
     """The database holds imported rows that predate content fingerprints."""
 
 
+class MigrationError(RuntimeError):
+    """A migration file no longer matches the one that was applied."""
+
+
+# How long a connection waits for a lock it cannot take immediately, rather
+# than raising `database is locked` at once. The default is 0.
+BUSY_TIMEOUT_MS = 5000
+
+
 def connect(path: str | Path, read_only: bool = False) -> sqlite3.Connection:
     """Open the database. `read_only` opens it via SQLite's mode=ro URI.
 
@@ -21,14 +31,29 @@ def connect(path: str | Path, read_only: bool = False) -> sqlite3.Connection:
     mutate enforceable rather than merely intended: any write raises
     sqlite3.OperationalError. mode=ro also refuses to create a missing file,
     so callers should check existence first to give a useful message.
+
+    Two settings matter once anything but the CLI opens this file. WAL lets a
+    reader and the writer work at the same time -- under the default rollback
+    journal they block each other, so a report running while an import writes
+    fails outright. And `busy_timeout` makes a connection wait for a lock
+    instead of raising `database is locked` the instant it meets one. Neither
+    changes behaviour for a single CLI process; both are what the planned
+    HTTP server will need, and setting them here means it inherits them
+    rather than rediscovering the problem under concurrent requests.
+
+    journal_mode is a property of the database file, not of the connection,
+    so it is set once by whichever writer opens it first and persists. A
+    read-only connection cannot set it, and does not need to.
     """
     if read_only:
         con = sqlite3.connect(
             f"{Path(path).resolve().as_uri()}?mode=ro", uri=True)
     else:
         con = sqlite3.connect(str(path))
+        con.execute("PRAGMA journal_mode = WAL")
     con.row_factory = sqlite3.Row
     con.execute("PRAGMA foreign_keys = ON")
+    con.execute(f"PRAGMA busy_timeout = {BUSY_TIMEOUT_MS}")
     return con
 
 
@@ -39,6 +64,12 @@ def _sql_literal(value: str) -> str:
     inside the same transaction as its DDL, so this one value is inlined.
     """
     return "'" + value.replace("'", "''") + "'"
+
+
+def checksum(script: str) -> str:
+    """Content hash of a migration, ignoring line-ending differences."""
+    return hashlib.sha256(
+        "\n".join(script.splitlines()).encode("utf-8")).hexdigest()[:16]
 
 
 def migrate(con: sqlite3.Connection, migrations_dir: str | Path) -> list[str]:
@@ -55,23 +86,53 @@ def migrate(con: sqlite3.Connection, migrations_dir: str | Path) -> list[str]:
     BEGIN and COMMIT are part of the script text on purpose: executescript
     commits any pending transaction before it runs, so a transaction opened
     around the call would be discarded rather than honoured.
+
+    Each applied migration's content hash is recorded and re-checked on every
+    run. Editing a migration that has already been applied is otherwise
+    silently ignored forever -- the file is skipped by name, so the change
+    reaches a fresh database and never reaches an existing one, and the two
+    diverge with nothing to show for it. `MigrationError` says so instead.
     """
     con.execute(
         "CREATE TABLE IF NOT EXISTS schema_migrations ("
         " name TEXT PRIMARY KEY, applied_at TEXT NOT NULL)")
+    # Added after the fact, so a database migrated before checksums existed
+    # keeps working: its rows carry NULL and are not verified.
+    columns = {r["name"] for r in con.execute(
+        "PRAGMA table_info(schema_migrations)")}
+    if "checksum" not in columns:
+        con.execute("ALTER TABLE schema_migrations ADD COLUMN checksum TEXT")
     con.commit()
-    done = {r["name"] for r in con.execute("SELECT name FROM schema_migrations")}
+
+    done = {r["name"]: r["checksum"]
+            for r in con.execute(
+                "SELECT name, checksum FROM schema_migrations")}
 
     applied: list[str] = []
     now = datetime.datetime.now().isoformat(timespec="seconds")
     for path in sorted(Path(migrations_dir).glob("*.sql")):
+        script_text = path.read_text(encoding="utf-8")
+        digest = checksum(script_text)
+
         if path.name in done:
+            recorded = done[path.name]
+            if recorded is not None and recorded != digest:
+                raise MigrationError(
+                    f"{path.name} has changed since it was applied"
+                    f" (recorded {recorded}, now {digest}). An applied"
+                    " migration is skipped by name, so this edit will reach a"
+                    " freshly built database and never reach this one. Add a"
+                    " new migration for the change instead, or -- if the edit"
+                    " is genuinely cosmetic -- update the recorded checksum"
+                    " by hand.")
             continue
+
         script = (
             "BEGIN;\n"
-            + path.read_text(encoding="utf-8")
-            + "\nINSERT INTO schema_migrations (name, applied_at) VALUES ("
-            + _sql_literal(path.name) + ", " + _sql_literal(now) + ");\n"
+            + script_text
+            + "\nINSERT INTO schema_migrations (name, applied_at, checksum)"
+            " VALUES (" + _sql_literal(path.name) + ", " + _sql_literal(now)
+            + ", " + _sql_literal(digest) + ");\n"
             "COMMIT;\n")
         try:
             con.executescript(script)
