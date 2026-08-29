@@ -6,8 +6,8 @@ import sqlite3
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
-from server.deps import db, db_ro
-from server.lib import categorise, rules, store
+from server.deps import db, db_ro, household
+from server.lib import categorise, local, rules, store
 from server.schemas import (BulkIn, BulkResult, TransactionIn, TransactionOut,
                             TransactionPatch)
 
@@ -56,7 +56,8 @@ def get_transaction(transaction_id: int,
     return TransactionOut.from_row(row)
 
 
-def _insert(con: sqlite3.Connection, body: TransactionIn) -> int:
+def _insert(con: sqlite3.Connection, body: TransactionIn,
+            home: local.LocalData) -> int:
     """Insert one hand-entered row, categorising it if no category was given.
 
     Running the same `categorise` the importer runs -- learned rules included
@@ -67,7 +68,8 @@ def _insert(con: sqlite3.Connection, body: TransactionIn) -> int:
     category, needs_review = body.category, False
     if category is None:
         verdict = categorise.categorise(
-            body.description, learned=rules.learned_map(con))
+            body.description, learned=rules.learned_map(con),
+            extra_rules=home.rules)
         category, needs_review = verdict.category, verdict.needs_review
 
     return store.insert_manual(
@@ -85,10 +87,11 @@ def _insert(con: sqlite3.Connection, body: TransactionIn) -> int:
 @router.post("", response_model=TransactionOut,
              status_code=status.HTTP_201_CREATED)
 def create_transaction(body: TransactionIn,
-                       con: sqlite3.Connection = Depends(db)):
+                       con: sqlite3.Connection = Depends(db),
+                       home: local.LocalData = Depends(household)):
     """Add a transaction by hand -- the Add sheet's three-tap path."""
     try:
-        new_id = _insert(con, body)
+        new_id = _insert(con, body, home)
     except LookupError as exc:
         raise HTTPException(UNPROCESSABLE, str(exc))
     con.commit()
@@ -97,7 +100,8 @@ def create_transaction(body: TransactionIn,
 
 @router.post("/bulk", response_model=BulkResult,
              status_code=status.HTTP_201_CREATED)
-def create_bulk(body: BulkIn, con: sqlite3.Connection = Depends(db)):
+def create_bulk(body: BulkIn, con: sqlite3.Connection = Depends(db),
+                home: local.LocalData = Depends(household)):
     """The spec's programmatic entry point.
 
     All or nothing: the rows are inserted in one transaction and rolled back
@@ -108,7 +112,7 @@ def create_bulk(body: BulkIn, con: sqlite3.Connection = Depends(db)):
     ids: list[int] = []
     try:
         for row in body.rows:
-            ids.append(_insert(con, row))
+            ids.append(_insert(con, row, home))
     except LookupError as exc:
         con.rollback()
         raise HTTPException(UNPROCESSABLE, str(exc))

@@ -2,11 +2,19 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 
 # --- CATEGORIES, RULES, VIPPS_RE moved verbatim from the original
 # --- standalone import script (commit d0f2b9a, lines 58-156). Do not retune.
+#
+# Four rules have since been removed. Three named a card account number or an
+# employer, and so identified the household using the app rather than saying
+# anything about budgeting; they live in the gitignored local file now (see
+# server/lib/local.py) and arrive here as `extra_rules`. The fourth paired
+# `spotify` with a surname and was simply redundant: every row it matched
+# also matches the plain `spotify` rule below, to the same category and the
+# same review flag -- verified against the golden fixture before removing it.
 
 # (name, kind). Order here is only for readability.
 CATEGORIES = [
@@ -35,17 +43,13 @@ CATEGORIES = [
 RULES = [
     # --- internal transfers (decision: excluded from income/spending) --------
     (r"^innbetaling$",                      "Credit card payment", 0),
-    (r"til\s*:\s*99900011122",              "Credit card payment", 0),
     (r"overf.ring mellom egne konti",       "Internal transfer", 0),
     (r"ukespenger",                         "Internal transfer", 0),
     (r"mobil overf.ring",                   "Internal transfer", 0),
     # --- income --------------------------------------------------------------
     (r"^l.nn\b",                            "Salary", 0),
-    (r"giro.*nordvest",                     "Employer reimbursement", 1),
-    (r"nordvest as mobil betaling",         "Employer loan repayment", 0),
     # --- Vipps P2P, categorised by memo (decision: memo drives category) -----
     (r"stol fra jysk",                      "Home & furniture", 0),
-    (r"\bspotify\b.*aalborg",               "Subscriptions", 0),
     (r"gave til mamma",                     "Gifts", 0),
     (r"humoretaten",                        "Entertainment", 0),
     (r"\bkino(tpp|ref|\b)",                  "Entertainment", 0),
@@ -204,17 +208,30 @@ class Verdict:
 
 
 def categorise(description: str,
-                learned: Mapping[str, str] | None = None) -> Verdict:
+                learned: Mapping[str, str] | None = None,
+                extra_rules: Iterable[tuple[str, str, bool]] = ()) -> Verdict:
     """Map a statement description to a category.
 
     `learned` maps a lowercase substring to a category name and wins over the
     built-in rules, so a correction taught once keeps applying.
+
+    `extra_rules` are (pattern, category, needs_review) triples from the
+    household's own local file, tested before the built-in rules because they
+    are more specific than anything generic could be -- an account number
+    matches one account and nothing else. They are passed in rather than read
+    from disk here so this module stays pure: description text in, category
+    out, no I/O, which is what lets the golden-file suite run without a
+    database or a filesystem.
     """
     low = description.lower()
 
     for fragment, category in (learned or {}).items():
         if fragment.lower() in low:
             return Verdict(category, False)
+
+    for pattern, category, review in extra_rules:
+        if re.search(pattern, low):
+            return Verdict(category, bool(review))
 
     for pattern, category, review in RULES:
         if re.search(pattern, low):

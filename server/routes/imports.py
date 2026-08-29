@@ -14,8 +14,9 @@ from pathlib import Path
 from fastapi import (APIRouter, Depends, File, Form, HTTPException, UploadFile,
                      status)
 
-from server.deps import db, db_ro
-from server.lib import categorise, derive, importer, rules, store
+from server.deps import db, db_ro, household
+from server.lib import (categorise, derive, importer, local, rules,
+                        store)
 from server.lib.ingest import dnb_xlsx
 from server.schemas import ImportOut, PreviewOut, PreviewRow
 
@@ -109,7 +110,8 @@ def _read_rows(upload: UploadFile, layout) -> list:
 
 @router.post("/preview", response_model=PreviewOut)
 def preview(file: UploadFile = File(...), account: str = Form(...),
-            con: sqlite3.Connection = Depends(db_ro)):
+            con: sqlite3.Connection = Depends(db_ro),
+            home: local.LocalData = Depends(household)):
     """Say what committing this file would do, without writing anything.
 
     Read-only at the connection level, so the promise is enforced by SQLite
@@ -121,7 +123,8 @@ def preview(file: UploadFile = File(...), account: str = Form(...),
 
     classified = store.classify_rows(
         con, rows, row["id"],
-        lambda description: categorise.categorise(description, learned=learned))
+        lambda description: categorise.categorise(
+            description, learned=learned, extra_rules=home.rules))
 
     return PreviewOut(
         account=row["name"],
@@ -135,7 +138,8 @@ def preview(file: UploadFile = File(...), account: str = Form(...),
 
 @router.post("", response_model=ImportOut, status_code=status.HTTP_201_CREATED)
 def commit(file: UploadFile = File(...), account: str = Form(...),
-           con: sqlite3.Connection = Depends(db)):
+           con: sqlite3.Connection = Depends(db),
+           home: local.LocalData = Depends(household)):
     """Import the file. Additive and idempotent, like every other ingest path.
 
     Re-uploading a statement already imported inserts nothing and reports it
@@ -151,7 +155,7 @@ def commit(file: UploadFile = File(...), account: str = Form(...),
         account_id=row["id"],
         source_file=file.filename or "upload.xlsx",
         categoriser=lambda description: categorise.categorise(
-            description, learned=learned),
+            description, learned=learned, extra_rules=home.rules),
         splitter=derive.split_loan_term,
         counterparty=categorise.extract_counterparty)
 

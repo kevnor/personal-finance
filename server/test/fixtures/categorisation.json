@@ -686,8 +686,8 @@
  {
   "description": "Overføring Innland  396 Til : 99900011122 Mobil Betaling",
   "amount": -4982.8,
-  "category": "Credit card payment",
-  "needs_review": false
+  "category": "Vipps P2P - unspecified",
+  "needs_review": true
  },
  {
   "description": "Varekjøp Rema Lorenveien Lørenveien 3 Oslo Dato 20.07 kl. 19.04",
@@ -782,7 +782,7 @@
  {
   "description": "Giro  921000000 Nordvest Teknikk AS",
   "amount": 835.8,
-  "category": "Employer reimbursement",
+  "category": "Uncategorised",
   "needs_review": true
  },
  {
@@ -908,8 +908,8 @@
  {
   "description": "Overføring Innland  403 Nordvest Teknikk AS Mobil BetalingDividend Kasper Aalborg",
   "amount": -800.0,
-  "category": "Employer loan repayment",
-  "needs_review": false
+  "category": "Vipps P2P - unspecified",
+  "needs_review": true
  },
  {
   "description": "Varekjøp All In One AS Skjeringen Stavanger Dato 27.07 kl. 18.20",

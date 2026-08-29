@@ -1,12 +1,11 @@
 """Account-holder corrections that no rule can express.
 
 A memo says what was bought, not why, and a statement line cannot say who
-ultimately pays. These two facts came from the account holder during the
-2026-08-22 session and were applied once by hand against the database then
-on disk -- so a fresh clone plus `import` produced a dataset missing both,
-and passed the 181-row / 14 084,24 reconciliation anyway, since neither
-correction changes the net. That is exactly the kind of silent divergence
-the reconciliation invariant cannot catch, hence this module.
+ultimately pays. Facts like that come from the account holder, and they name
+specific payments to specific people — so they are the household's data, not
+the project's, and they live in the gitignored local file rather than here.
+See `server/lib/local.py` for why, and README "Local configuration" for the
+format. This module is the mechanism that applies them.
 
 Each correction is keyed on the row's own content (date, description,
 amount), not on a row id: ids are assigned by insertion order and mean
@@ -14,49 +13,23 @@ nothing across databases. Applying twice is a no-op -- the recategorisation
 updates only rows not already in the target category, and
 rules.mark_reimbursable upserts.
 
-These are NOT merchant rules. `rules.teach` would be the wrong tool: `Bok`
-genuinely does mean Books most of the time, and Hoome genuinely is a
-furniture merchant. The correction is about these specific payments.
+These are NOT merchant rules. `rules.teach` would be the wrong tool: a memo
+reading `Bok` genuinely does mean Books most of the time, and a furniture
+shop genuinely is a furniture shop. The correction is about one payment.
+
+They are applied on every import rather than once by hand, because a
+correction that changes no amount cannot be noticed missing by the
+reconciliation invariant -- which is exactly how the original two went
+absent from a rebuilt database while it still reconciled.
 """
 from __future__ import annotations
 
 import sqlite3
-from dataclasses import dataclass
 
-from server.lib import rules
+from server.lib import local, rules
 
-
-@dataclass(frozen=True)
-class Row:
-    """Content key for one transaction."""
-    date: str
-    description: str
-    amount: float
-
-
-# db/README decision 7. A 166,00 Vipps payment to Ingvild memoed `Bok` bought
-# a book as a present for the account holder's mother, split three ways with
-# Sindre and Torkel (166 / 3 = 55,33 each). Both the payment and Torkel'
-# incoming 55,00 share therefore belong in Gifts, not Books; Sindre' share was
-# already memoed `Gave Til Mamma`. Gifts then nets to 56,00 -- the account
-# holder's own share -- and Books is empty.
-RECATEGORISATIONS: list[tuple[Row, str]] = [
-    (Row("2026-07-28",
-         "Overføring  9260000000 Ingvild Kvamme Berg BokTpp: Vipps Mobilepay AS",
-         -166.0), "Gifts"),
-    (Row("2026-07-28",
-         "Overføring  92800000000 Torkel Aalborg BokTpp: Vipps",
-         55.0), "Gifts"),
-]
-
-# db/README decision 8. The 13 990 phone is paid for by the account holder's
-# employer, so it is a debt owed rather than a miscategorised expense --
-# recorded as a reimbursement, which keeps the category right for reporting
-# while budget_override = 'reimbursable' keeps it out of the envelope.
-REIMBURSEMENTS: list[tuple[Row, str, str]] = [
-    (Row("2026-07-30", "Mol*Hoome AS, 4799000000", -13990.0),
-     "Nordvest Teknikk AS", "employer-paid phone"),
-]
+# Kept as aliases so callers and tests have one name for the content key.
+Row = local.Correction
 
 
 def _find(con: sqlite3.Connection, row: Row) -> int | None:
@@ -66,23 +39,28 @@ def _find(con: sqlite3.Connection, row: Row) -> int | None:
         (row.date, row.description, row.amount)).fetchall()
     if len(found) > 1:
         raise LookupError(
-            f"{len(found)} transactions match {row.description!r} on"
+            f"{len(found)} transactions match this correction's key on"
             f" {row.date} for {row.amount} -- a correction must name one row")
     return found[0]["id"] if found else None
 
 
-def apply(con: sqlite3.Connection) -> dict[str, int]:
-    """Apply every correction. Idempotent.
+def apply(con: sqlite3.Connection,
+          data: local.LocalData | None = None) -> dict[str, int]:
+    """Apply every correction in `data`. Idempotent.
 
     Returns counts: `applied` for corrections that changed something,
     `already` for those already in place, and `missing` for rows not in this
     database (a partial import, say) -- reported rather than raised, since
     corrections are dataset-specific and an incomplete import is a legitimate
     state, but counted so a silent no-op is visible.
+
+    With no data -- a fresh clone with no local file -- this does nothing and
+    reports zeroes, which is correct: there is no household attached yet.
     """
+    data = data if data is not None else local.EMPTY
     counts = {"applied": 0, "already": 0, "missing": 0}
 
-    for row, category in RECATEGORISATIONS:
+    for row, category in data.recategorisations:
         transaction_id = _find(con, row)
         if transaction_id is None:
             counts["missing"] += 1
@@ -97,7 +75,7 @@ def apply(con: sqlite3.Connection) -> dict[str, int]:
             (cid["id"], transaction_id, cid["id"])).rowcount
         counts["applied" if changed else "already"] += 1
 
-    for row, expected_from, note in REIMBURSEMENTS:
+    for row, expected_from, note in data.reimbursements:
         transaction_id = _find(con, row)
         if transaction_id is None:
             counts["missing"] += 1

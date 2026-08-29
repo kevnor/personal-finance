@@ -25,6 +25,7 @@ class Settings:
     db_path: Path
     migrations_dir: Path
     passcode_file: Path
+    local_file: Path
     static_dir: Path
     timezone: ZoneInfo
     # Set only when the app is served over HTTPS, which is what lets the
@@ -44,6 +45,8 @@ class Settings:
                 env.get("PF_MIGRATIONS_DIR", ROOT / "db" / "migrations")),
             passcode_file=Path(
                 env.get("PF_PASSCODE_FILE", data_dir / "passcode.json")),
+            # Household-specific rules and corrections; see server/lib/local.py.
+            local_file=Path(env.get("PF_LOCAL_FILE", data_dir / "local.json")),
             static_dir=Path(
                 env.get("PF_STATIC_DIR", ROOT / "client" / "dist")),
             timezone=ZoneInfo(env.get("PF_TIMEZONE", DEFAULT_TIMEZONE)),

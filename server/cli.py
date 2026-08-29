@@ -6,7 +6,8 @@ import datetime
 from pathlib import Path
 
 from server import corrections
-from server.lib import budget, categorise, derive, importer, rules, store
+from server.lib import (budget, categorise, derive, importer, local, rules,
+                        store)
 from server.lib.ingest import dnb_xlsx
 
 SOURCES = [
@@ -37,6 +38,10 @@ def build(db_path, input_dir, migrations_dir) -> dict:
     budget.seed_default_config(con)
 
     learned = rules.learned_map(con)
+    # The household's own rules and corrections, from the gitignored file
+    # beside the database. Absent on a fresh clone, which is why every use of
+    # it degrades to "no local rules, no corrections" rather than failing.
+    household = local.load(local.path_for(Path(db_path).parent))
     accounts = {r["name"]: r["id"]
                 for r in con.execute("SELECT id, name FROM accounts")}
 
@@ -54,18 +59,19 @@ def build(db_path, input_dir, migrations_dir) -> dict:
             dnb_xlsx.read_statement(path, layout),
             account_id=accounts[account],
             source_file=filename,
-            categoriser=lambda d: categorise.categorise(d, learned=learned),
+            categoriser=lambda d: categorise.categorise(
+                d, learned=learned, extra_rules=household.rules),
             splitter=derive.split_loan_term,
             counterparty=categorise.extract_counterparty)
         inserted += result.inserted
         skipped += result.skipped
         derived += result.derived
 
-    # Applied on every import, not just once by hand: the two corrections
-    # change no amount, so the 181/14084.24 reconciliation cannot notice them
-    # missing. They are content-keyed and idempotent, so a run that has
-    # nothing to fix does nothing.
-    fixes = corrections.apply(con)
+    # Applied on every import, not just once by hand: a correction that
+    # changes no amount cannot be noticed missing by the reconciliation
+    # invariant. Content-keyed and idempotent, so a run with nothing to fix
+    # does nothing -- including a clone with no local file at all.
+    fixes = corrections.apply(con, household)
     # Rows imported before the extractor was wired in carry no counterparty
     # and are skipped as already present, so they need repairing rather than
     # re-inserting. Derived from the description, so always safe to recompute.

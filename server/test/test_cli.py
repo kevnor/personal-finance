@@ -16,7 +16,7 @@ from pathlib import Path
 import pytest
 
 from server import cli
-from server.lib import store
+from server.lib import local, store
 from server.lib.ingest import dnb_xlsx
 from server.test.fixtures import statements
 
@@ -222,18 +222,45 @@ def test_an_individually_absent_statement_is_still_skipped_quietly(tmp_path):
 
 
 # -- this dataset's own figures, on the real statements --------------------
+#
+# These reproduce one household's numbers, so they need that household's own
+# file as well as its statements: three rules that used to sit in
+# categorise.py -- a card account number and two naming an employer --
+# identified the people using the app and now live in the gitignored local
+# file. Without it two rows fall through to the review queue that the rules
+# used to answer, and `needs_review` is 31 rather than 29.
+
+
+LOCAL = ROOT / "data" / local.FILENAME
+
+needs_household = pytest.mark.skipif(
+    not LOCAL.exists(),
+    reason=f"no {LOCAL} (household rules and corrections)")
+
+
+def build_as_the_household(tmp_path):
+    """Import the real statements with the household's own file in place."""
+    db = tmp_path / "t.db"
+    db.parent.mkdir(parents=True, exist_ok=True)
+    if LOCAL.exists():
+        local.path_for(db.parent).write_text(
+            LOCAL.read_text(encoding="utf-8"), encoding="utf-8")
+    return db, cli.build(db, INPUT, MIGRATIONS)
+
 
 @needs_statements
 def test_full_pipeline_reproduces_the_known_dataset(tmp_path):
-    result = cli.build(tmp_path / "t.db", INPUT, MIGRATIONS)
+    # Row count and net are unaffected by which rules ran -- categorisation
+    # moves rows between categories, it never adds or removes one -- so this
+    # holds with or without the household file.
+    _, result = build_as_the_household(tmp_path)
     assert result["count"] == 181
     assert result["net"] == 14084.24
 
 
 @needs_statements
 def test_real_import_is_idempotent_and_holds_the_known_net(tmp_path):
-    db = tmp_path / "t.db"
-    first = cli.build(db, INPUT, MIGRATIONS)
+    db, first = build_as_the_household(tmp_path)
     second = cli.build(db, INPUT, MIGRATIONS)
     assert second["inserted"] == 0
     assert second["skipped"] == first["inserted"]
@@ -246,8 +273,7 @@ def test_import_populates_counterparty_for_the_same_48_rows_as_the_legacy_db(
         tmp_path):
     """The standalone script extracted 48 counterparty values; the count is
     the anchor, and the extraction itself is covered in test_upsert.py."""
-    db = tmp_path / "t.db"
-    cli.build(db, INPUT, MIGRATIONS)
+    db, _ = build_as_the_household(tmp_path)
     con = store.connect(db)
     assert con.execute(
         "SELECT COUNT(counterparty) FROM transactions").fetchone()[0] == 48
@@ -255,17 +281,19 @@ def test_import_populates_counterparty_for_the_same_48_rows_as_the_legacy_db(
 
 @needs_statements
 def test_real_mortgage_term_sums_back_to_the_known_charge(tmp_path):
-    cli.build(tmp_path / "t.db", INPUT, MIGRATIONS)
-    con = store.connect(tmp_path / "t.db")
+    db, _ = build_as_the_household(tmp_path)
+    con = store.connect(db)
     rows = list(con.execute(
         "SELECT t.amount FROM transactions t WHERE t.is_derived = 1"))
     assert round(sum(r["amount"] for r in rows), 2) == -13288.75
 
 
 @needs_statements
+@needs_household
 def test_real_reconcile_reports_the_known_review_queue(tmp_path):
-    db = tmp_path / "t.db"
-    cli.build(db, INPUT, MIGRATIONS)
+    """The one figure here that depends on the household file: two of the
+    rules that moved into it answer rows which would otherwise be flagged."""
+    db, _ = build_as_the_household(tmp_path)
     result = cli.reconcile(db)
     assert result["count"] == 181
     assert result["net"] == 14084.24

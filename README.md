@@ -25,7 +25,8 @@ categorisation rules are shaped the way they are — is documented in
 | `server/lib/derive.py` | Splits an itemised row (a loan term) into its parts |
 | `server/lib/budget.py` | The weekly-envelope engine |
 | `server/lib/store.py` | Connections, migrations, transaction writes |
-| `server/corrections.py` | One-off account-holder facts no rule can express |
+| `server/corrections.py` | Applies the household's one-off corrections |
+| `server/lib/local.py` | Reads `data/local.json` — the household's own facts |
 | `db/migrations/` | Numbered SQL migrations, applied in filename order |
 | `client/` | React PWA |
 | `client/src/sw.js` | Service worker; its rules live in `lib/swStrategy.js` |
@@ -126,6 +127,50 @@ Norwegian. `GET /api/categories` serves both a `name` and a `label`, and the
 client displays the label while sending the name back. Keeping the mapping
 server-side is deliberate: a table in the client would go stale the moment a
 category was added, and go stale silently.
+
+## Local configuration
+
+Some of what this app needs to categorise correctly identifies the people
+using it: a card account number, an employer's name, a payment to a named
+person whose purpose no rule can infer. Those are facts about one household,
+not about budgeting, so they are **not** in this repository. They live in one
+gitignored file beside the database — `data/local.json`, on the same volume,
+for the same reason the passcode is there rather than in the database.
+
+Everything in it is optional, and a clone with no file at all runs fine: it
+categorises by the built-in rules alone and applies no corrections, which is
+the right behaviour for an instance with no household attached to it yet.
+
+```json
+{
+  "rules": [
+    { "pattern": "til\\s*:\\s*12345678901", "category": "Credit card payment" },
+    { "pattern": "giro.*acme", "category": "Employer reimbursement", "needs_review": true }
+  ],
+  "recategorisations": [
+    { "date": "2026-07-28", "description": "<the row's exact description>",
+      "amount": -166.0, "category": "Gifts" }
+  ],
+  "reimbursements": [
+    { "date": "2026-07-30", "description": "<the row's exact description>",
+      "amount": -13990.0, "expected_from": "Acme AS", "note": "employer-paid phone" }
+  ]
+}
+```
+
+- **`rules`** are regexes tested *before* the built-in rules and *after*
+  anything taught in the UI, because they are more specific than any generic
+  rule can be — an account number matches one account and nothing else.
+- **`recategorisations`** and **`reimbursements`** are corrections about one
+  specific payment, keyed on that row's own content rather than its id (ids
+  are assigned by insertion order and mean nothing across databases). They
+  are re-applied on every import and are idempotent, because a correction
+  that changes no amount cannot be noticed missing by the reconciliation
+  invariant.
+
+A malformed file raises rather than being ignored: silently continuing would
+mean a household's corrections quietly stop being applied, which is the
+failure this arrangement exists to prevent.
 
 ## Tests
 

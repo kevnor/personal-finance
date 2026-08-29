@@ -8,7 +8,7 @@ from typing import Iterator
 from fastapi import Depends, HTTPException, Request, status
 
 from server import security
-from server.lib import store
+from server.lib import local, store
 from server.settings import Settings
 
 
@@ -69,6 +69,17 @@ def db_ro(settings: Settings = Depends(get_settings)) -> Iterator[sqlite3.Connec
         yield con
     finally:
         con.close()
+
+
+def household(settings: Settings = Depends(get_settings)) -> local.LocalData:
+    """The household's own rules and corrections, or EMPTY where there are none.
+
+    Read per request rather than cached at startup: it is one small file, and
+    a user who edits it should not have to restart the server to see the
+    effect. A fresh deployment has no such file at all, which is why every
+    consumer degrades to the built-in rules rather than failing.
+    """
+    return local.load(settings.local_file)
 
 
 def require_session(
