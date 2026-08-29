@@ -113,6 +113,57 @@ RULES = [
 
 VIPPS_RE = re.compile(r"vipps|tpp:|overf.ring", re.I)
 
+# Category name -> the Norwegian label the UI shows.
+#
+# The category names above are identifiers: they are what `RULES`,
+# `corrections.py` and `TREATMENTS` key on, and renaming one would silently
+# detach every rule that names it. The interface is Norwegian, so the two
+# cannot be the same string. This mapping lives here, beside the names it
+# translates, rather than in the client -- a client-side table drifts the
+# moment a category is added on this side, and drifts silently, showing an
+# English name in a Norwegian screen. `GET /api/categories` serves it, and a
+# test asserts every category has one.
+LABELS: dict[str, str] = {
+    "Salary":                   "Lønn",
+    "Employer reimbursement":   "Utleggsrefusjon",
+    "Internal transfer":        "Egen overføring",
+    "Credit card payment":      "Kortbetaling",
+    "Groceries":                "Dagligvarer",
+    "Convenience & kiosk":      "Kiosk",
+    "Cafe & bakery":            "Kafé & bakeri",
+    "Restaurants & takeaway":   "Restaurant & takeaway",
+    "Bars & nightlife":         "Bar & uteliv",
+    "Public transport":         "Kollektivtransport",
+    "Taxi & ride-hailing":      "Taxi",
+    "Fuel & EV charging":       "Drivstoff & lading",
+    "Clothing & shoes":         "Klær & sko",
+    "Sports & outdoor":         "Sport & friluft",
+    "Home & furniture":         "Hjem & møbler",
+    "Flowers & plants":         "Blomster & planter",
+    "Personal care":            "Personlig pleie",
+    "Health - dental":          "Helse – tannlege",
+    "Health - pharmacy":        "Helse – apotek",
+    "Health - doctor":          "Helse – lege",
+    "Utilities - electricity":  "Strøm",
+    "Insurance":                "Forsikring",
+    "Gym & fitness":            "Trening",
+    "Subscriptions":            "Abonnementer",
+    "Memberships":              "Medlemskap",
+    "Entertainment":            "Underholdning",
+    "Accommodation":            "Overnatting",
+    "Books":                    "Bøker",
+    "Gifts":                    "Gaver",
+    "Mortgage & loan":          "Lån & avdrag",
+    "Student loan":             "Studielån",
+    "Mortgage - interest":      "Boliglån – renter",
+    "Mortgage - fees":          "Boliglån – gebyr",
+    "Mortgage - principal":     "Boliglån – avdrag",
+    "Employer loan repayment":  "Lån til arbeidsgiver",
+    "Vipps P2P - unspecified":  "Vipps – uten memo",
+    "Uncategorised":            "Ukategorisert",
+}
+
+
 # Category name -> (budget_treatment, cash_treatment), for categories that
 # deviate from the schema defaults ("variable", "settlement"). Anything not
 # listed here keeps those defaults. Fed to store.seed_reference_data.

@@ -5,12 +5,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#161826" />
     <link rel="manifest" href="/manifest.webmanifest" />
+    <!--
+      Inter is loaded without blocking first paint. This app is served on a
+      private tailnet that may have no route to the internet at all, and a
+      blocking stylesheet from a CDN that cannot be reached holds the page
+      blank until it times out. Loaded this way the system font stack in
+      index.css renders immediately and Inter swaps in when (and if) it
+      arrives.
+    -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
       rel="stylesheet"
+      media="print"
+      onload="this.media='all'"
     />
+    <noscript>
+      <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+        rel="stylesheet"
+      />
+    </noscript>
     <title>Husholdning</title>
   </head>
   <body>

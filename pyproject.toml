@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "personal-finance"
 version = "0.1.0"
@@ -6,12 +10,37 @@ version = "0.1.0"
 # previous ">=3.14" pin was not backed by any language feature in use and
 # ruled out every interpreter a contributor or CI runner is likely to have.
 requires-python = ">=3.11"
-dependencies = []
+# These are the HTTP server's dependencies. The CLI (`import`, `reconcile`,
+# `budget`) needs none of them -- ingest, categorisation and the budget engine
+# are pure stdlib, which is what lets the pipeline run anywhere the API does
+# not. They are not split into an extra because an extra cannot make a
+# dependency optional in the other direction; `python3 -m server.cli` simply
+# works on a checkout with nothing installed.
+dependencies = [
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.27",
+    "argon2-cffi>=23",
+    "python-multipart>=0.0.9",   # statement upload is multipart/form-data
+]
+
+[tool.setuptools]
+# Declared explicitly: the repo keeps db/, client/, docs/ and input/ beside
+# the package, and setuptools' auto-discovery refuses a flat layout with
+# several top-level directories rather than guessing among them.
+packages = [
+    "server",
+    "server.lib",
+    "server.lib.ingest",
+    "server.routes",
+]
 
 [dependency-groups]
 # pytest was required to run the suite but declared nowhere, so "install the
 # project, run the tests" did not work from a clean checkout.
-dev = ["pytest>=8"]
+dev = [
+    "pytest>=8",
+    "httpx>=0.27",               # required by fastapi.testclient
+]
 
 [tool.pytest.ini_options]
 testpaths = ["server/test"]

@@ -216,3 +216,71 @@ def test_a_read_only_connection_still_gets_the_busy_timeout(tmp_path):
     con = store.connect(db, read_only=True)
     assert con.execute(
         "PRAGMA busy_timeout").fetchone()[0] == store.BUSY_TIMEOUT_MS
+
+
+def test_a_request_scoped_connection_can_cross_threads(tmp_path):
+    """Found by driving the real app in a browser, not by the test suite.
+
+    Under a real ASGI server FastAPI runs a sync dependency's setup, the
+    route handler and the dependency's teardown on whichever threadpool
+    worker is free at each step, so one request's connection is used from
+    several threads in turn. Every API request failed with "SQLite objects
+    created in a thread can only be used in that same thread" -- while
+    TestClient passed, because with one client and a cold pool the same
+    worker tends to serve every step.
+    """
+    import concurrent.futures
+
+    db = tmp_path / "t.db"
+    con = store.connect(db, same_thread=False)
+    store.migrate(con, MIGRATIONS)
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+        rows = pool.submit(
+            lambda: con.execute("SELECT COUNT(*) FROM schema_migrations").fetchone()[0]
+        ).result()
+    assert rows > 0
+
+    # And the same for the read-only connection the reporting routes take.
+    reader = store.connect(db, read_only=True, same_thread=False)
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+        assert pool.submit(
+            lambda: reader.execute("SELECT 1").fetchone()[0]).result() == 1
+
+
+def test_the_default_connection_still_guards_against_thread_sharing(tmp_path):
+    """The check stays on where it costs nothing. A connection genuinely
+    shared between requests would still be a bug, and the CLI has no threads
+    to confuse."""
+    import concurrent.futures
+
+    con = store.connect(tmp_path / "t.db")
+    store.migrate(con, MIGRATIONS)
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+        with pytest.raises(sqlite3.ProgrammingError):
+            pool.submit(lambda: con.execute("SELECT 1")).result()
+
+
+def test_the_api_dependencies_hand_out_cross_thread_connections(tmp_path):
+    """Pins the property at the layer that needs it, so the fix cannot be
+    undone in `deps` without a test noticing."""
+    import concurrent.futures
+
+    from server import deps
+    from server.settings import Settings
+
+    settings = Settings.from_env({
+        "PF_DATA_DIR": str(tmp_path / "data"),
+        "PF_STATIC_DIR": str(tmp_path / "none")})
+    settings.db_path.parent.mkdir(parents=True, exist_ok=True)
+    store.migrate(store.connect(settings.db_path), MIGRATIONS)
+
+    for dependency in (deps.db, deps.db_ro):
+        generator = dependency(settings)
+        con = next(generator)
+        try:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+                assert pool.submit(
+                    lambda: con.execute("SELECT 1").fetchone()[0]).result() == 1
+        finally:
+            generator.close()

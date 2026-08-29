@@ -116,3 +116,81 @@ button {
 .tabular {
   font-variant-numeric: tabular-nums;
 }
+
+/* Form controls and buttons.
+   Added with the API wiring: the app now has screens a person types into --
+   login, the savings target, statement upload -- and inline style objects
+   cannot express :focus-visible or :disabled. */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field-label {
+  font: 400 11px/1 var(--font-body);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.field-input,
+.field-select {
+  appearance: none;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-divider-strong);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: 400 14px/1.2 var(--font-body);
+}
+
+.field-input:focus-visible,
+.field-select:focus-visible,
+.btn-primary:focus-visible,
+.btn-outline:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--accent-400);
+  outline-offset: 2px;
+}
+
+.btn-primary,
+.btn-outline {
+  appearance: none;
+  width: 100%;
+  min-height: 46px;
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  font: 500 14px/1.2 var(--font-heading);
+  cursor: pointer;
+}
+
+.btn-primary {
+  border: 1px solid var(--accent-500);
+  background: rgba(145, 132, 217, 0.18);
+  color: var(--accent-200);
+}
+
+.btn-outline {
+  border: 1px solid var(--color-divider-strong);
+  background: none;
+  color: var(--color-text-muted);
+}
+
+.btn-primary[disabled],
+.btn-outline[disabled] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Respect a reduced-motion preference: the only transition in the app is the
+   week card's chevron, and it is decoration. */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}

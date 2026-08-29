@@ -6,7 +6,7 @@ import datetime
 from pathlib import Path
 
 from server import corrections
-from server.lib import budget, categorise, derive, rules, store
+from server.lib import budget, categorise, derive, importer, rules, store
 from server.lib.ingest import dnb_xlsx
 
 SOURCES = [
@@ -39,40 +39,27 @@ def build(db_path, input_dir, migrations_dir) -> dict:
     learned = rules.learned_map(con)
     accounts = {r["name"]: r["id"]
                 for r in con.execute("SELECT id, name FROM accounts")}
-    now = datetime.datetime.now().isoformat(timespec="seconds")
 
     inserted = skipped = derived = 0
     for filename, account, _kind, layout in SOURCES:
         path = Path(input_dir) / filename
         if not path.exists():
             continue
-        rows = dnb_xlsx.read_statement(path, layout)
-        batch = con.execute(
-            "INSERT INTO import_batches (source_file, row_count, imported_at)"
-            " VALUES (?, ?, ?)", (filename, len(rows), now)).lastrowid
-
-        # Loan-term rows split into interest/principal/fee parts and never
-        # pass through the normal categorise-then-insert path -- see
-        # store.insert_derived_rows for why they must be kept out of it.
-        normal_rows, loan_rows = [], []
-        for row in rows:
-            target = loan_rows if derive.split_loan_term(
-                row.description, row.amount) else normal_rows
-            target.append(row)
-
-        account_id = accounts[account]
-        got, dup = store.upsert_transactions(
-            con, normal_rows, account_id, batch,
-            lambda d: categorise.categorise(d, learned=learned),
+        # Shared with the HTTP API's statement upload, so a file imported
+        # through either door produces the same rows -- including the
+        # loan-term partition, which is the part most costly to get wrong
+        # twice. See server/lib/importer.py.
+        result = importer.import_rows(
+            con,
+            dnb_xlsx.read_statement(path, layout),
+            account_id=accounts[account],
+            source_file=filename,
+            categoriser=lambda d: categorise.categorise(d, learned=learned),
+            splitter=derive.split_loan_term,
             counterparty=categorise.extract_counterparty)
-        inserted += got
-        skipped += dup
-
-        loan_got, loan_dup, loan_made = store.insert_derived_rows(
-            con, loan_rows, account_id, batch, derive.split_loan_term)
-        inserted += loan_got
-        skipped += loan_dup
-        derived += loan_made
+        inserted += result.inserted
+        skipped += result.skipped
+        derived += result.derived
 
     # Applied on every import, not just once by hand: the two corrections
     # change no amount, so the 181/14084.24 reconciliation cannot notice them
@@ -179,9 +166,9 @@ def main(argv: list[str] | None = None) -> int:
                  " (no check by default)")
         return p
 
-    importer = add_common(sub.add_parser(
+    import_parser = add_common(sub.add_parser(
         "import", help="read the statements in --input and insert new rows"))
-    importer.add_argument("--input", default=str(root / "input"))
+    import_parser.add_argument("--input", default=str(root / "input"))
     add_common(sub.add_parser(
         "reconcile", help="report an existing database; writes nothing"))
     reporter = sub.add_parser(
