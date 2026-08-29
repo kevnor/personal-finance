@@ -32,6 +32,7 @@ PROTECTED_ROUTERS = [
     transactions.router,
     budget_routes.router,
     categories.router,
+    categories.accounts_router,
     reimbursements.router,
     imports.router,
 ]

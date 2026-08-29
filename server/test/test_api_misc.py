@@ -219,3 +219,46 @@ def test_a_missing_client_build_is_not_an_error(client):
     and absent in tests. The API must still work."""
     assert client.get("/api/budget").status_code == 200
     assert client.get("/").status_code == 404
+
+
+def test_every_category_has_a_norwegian_label(client):
+    """The interface is Norwegian and the category names are English
+    identifiers, so the two cannot be the same string. Keeping the mapping on
+    this side is what stops it drifting: a client-side table would go stale
+    the moment a category is added here, and go stale silently -- an English
+    name appearing in a Norwegian screen."""
+    from server.lib import categorise
+
+    rows = client.get("/api/categories").json()
+    assert {row["name"] for row in rows} == {
+        name for name, _kind in categorise.CATEGORIES}
+    for row in rows:
+        assert row["label"], row["name"]
+        assert row["label"] == categorise.LABELS[row["name"]]
+
+
+def test_no_label_is_left_as_the_english_name_by_accident(client):
+    """A missing entry falls back to the identifier rather than crashing, so
+    the fallback must not be silently load-bearing."""
+    from server.lib import categorise
+    assert set(categorise.LABELS) == {n for n, _ in categorise.CATEGORIES}
+
+
+# -- accounts ---------------------------------------------------------------
+
+def test_accounts_are_listed(client):
+    """The client cannot hardcode these: hand entry and statement upload both
+    take an account by name and reject an unknown one."""
+    rows = client.get("/api/accounts").json()
+    assert {row["name"] for row in rows} == {"Bankkonto", "Kredittkort"}
+    assert {row["kind"] for row in rows} == {"bank", "credit_card"}
+
+
+def test_an_account_name_from_the_list_is_accepted_by_hand_entry(client):
+    """The list and the validator must agree, or the client offers a choice
+    the server then rejects."""
+    for account in client.get("/api/accounts").json():
+        response = client.post("/api/transactions", json={
+            "date": "2026-07-15", "description": "Rema Lorenveien, Oslo",
+            "amount": -10.0, "account": account["name"]})
+        assert response.status_code == 201, account["name"]

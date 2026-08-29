@@ -1,39 +1,83 @@
 import { useMemo, useState } from "react";
+import { ErrorState, Empty, Loading } from "../components/States.jsx";
 import TransactionRow from "../components/TransactionRow.jsx";
+import { useAppData } from "../context/AppData.jsx";
+import { useResource } from "../hooks/useResource.js";
+import { api } from "../lib/api.js";
+import { addDays, longDate } from "../lib/dates.js";
 import { nok } from "../lib/format.js";
-import { HISTORY_GROUPS, WEEK_ENVELOPE, SPENT_THIS_WEEK } from "../lib/mockData.js";
+import { groupByDay, isOutsideEnvelope, toRow } from "../lib/rows.js";
 
-const FILTERS = ["Alle", "I rammen", "Utenfor"];
+const FILTERS = [
+  { id: "all", label: "Alle" },
+  { id: "inside", label: "I rammen" },
+  { id: "outside", label: "Utenfor" },
+];
 
-export default function History() {
-  const [filter, setFilter] = useState("Alle");
+const WINDOW_DAYS = 60;
+
+export default function History({ revision, onUnauthorized }) {
+  const [filter, setFilter] = useState("all");
+  const { labelFor } = useAppData();
+
+  const budget = useResource(() => api.budget.get(), [revision], { onUnauthorized });
+  const day = budget.data?.day;
+
+  const history = useResource(
+    () =>
+      day
+        ? api.transactions.list({ from: addDays(day, -WINDOW_DAYS), to: day, limit: 500 })
+        : Promise.resolve(null),
+    [revision, day],
+    { onUnauthorized },
+  );
 
   const groups = useMemo(() => {
-    if (filter === "Alle") return HISTORY_GROUPS;
-    const wantOutside = filter === "Utenfor";
-    return HISTORY_GROUPS.map((g) => ({
-      ...g,
-      rows: g.rows.filter((r) => Boolean(r.outside) === wantOutside),
-    })).filter((g) => g.rows.length > 0);
-  }, [filter]);
+    const rows = history.data ?? [];
+    const filtered =
+      filter === "all"
+        ? rows
+        : rows.filter((tx) => isOutsideEnvelope(tx) === (filter === "outside"));
+    return groupByDay(filtered);
+  }, [history.data, filter]);
+
+  if (budget.error) return <ErrorState error={budget.error} onRetry={budget.reload} />;
+  if (history.error) return <ErrorState error={history.error} onRetry={history.reload} />;
+  if (!history.data) return <Loading />;
+
+  const figures = budget.data.figures;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <div>
-        <div style={{ font: "500 22px/1.15 var(--font-heading)", letterSpacing: "-.015em" }}>Historikk</div>
-        <div style={{ font: "400 12.5px/1.4 var(--font-body)", color: "var(--color-text-muted)", marginTop: 3 }}>
-          uke 35 · brukt {nok(SPENT_THIS_WEEK)} av {nok(WEEK_ENVELOPE)} kr
+        <div style={{ font: "500 22px/1.15 var(--font-heading)", letterSpacing: "-.015em" }}>
+          Historikk
+        </div>
+        <div
+          style={{ font: "400 12.5px/1.4 var(--font-body)", color: "var(--color-text-muted)", marginTop: 3 }}
+        >
+          denne uken · brukt {nok(figures.week_spent)} av {nok(figures.week_envelope)} kr
         </div>
       </div>
 
-      <div style={{ display: "flex", border: "1px solid var(--color-divider-strong)", borderRadius: 8, overflow: "hidden" }}>
+      <div
+        role="tablist"
+        style={{
+          display: "flex",
+          border: "1px solid var(--color-divider-strong)",
+          borderRadius: 8,
+          overflow: "hidden",
+        }}
+      >
         {FILTERS.map((f) => {
-          const active = filter === f;
+          const active = filter === f.id;
           return (
             <button
-              key={f}
+              key={f.id}
               type="button"
-              onClick={() => setFilter(f)}
+              role="tab"
+              aria-selected={active}
+              onClick={() => setFilter(f.id)}
               style={{
                 appearance: "none",
                 flex: 1,
@@ -46,26 +90,40 @@ export default function History() {
                 border: "none",
               }}
             >
-              {f}
+              {f.label}
             </button>
           );
         })}
       </div>
 
       {groups.length === 0 && (
-        <div style={{ font: "400 13px/1.5 var(--font-body)", color: "var(--color-text-muted)", textAlign: "center", padding: "24px 0" }}>
-          Ingen transaksjoner i dette filteret.
-        </div>
+        <Empty
+          title="Ingen transaksjoner"
+          hint={
+            filter === "all"
+              ? `Ingenting registrert de siste ${WINDOW_DAYS} dagene.`
+              : "Ingen transaksjoner i dette filteret."
+          }
+        />
       )}
 
-      {groups.map((g) => (
-        <div key={g.day} style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-          <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", padding: "6px 0 4px" }}>
-            <span className="eyebrow">{g.day}</span>
-            <span style={{ font: "400 11.5px/1 var(--font-body)", color: "var(--color-text-muted)" }}>{nok(g.total)} kr</span>
+      {groups.map((group) => (
+        <div key={group.date} style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "baseline",
+              justifyContent: "space-between",
+              padding: "6px 0 4px",
+            }}
+          >
+            <span className="eyebrow">{longDate(group.date)}</span>
+            <span style={{ font: "400 11.5px/1 var(--font-body)", color: "var(--color-text-muted)" }}>
+              {nok(Math.abs(group.total))} kr
+            </span>
           </div>
-          {g.rows.map((row, i) => (
-            <TransactionRow key={`${row.name}-${i}`} row={row} />
+          {group.rows.map((tx) => (
+            <TransactionRow key={tx.id} row={toRow(tx, labelFor)} />
           ))}
         </div>
       ))}

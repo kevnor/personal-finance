@@ -205,8 +205,15 @@ class ConfigIn(BaseModel):
 # --- categories ------------------------------------------------------------
 
 class CategoryOut(BaseModel):
+    """`name` is the identifier rules key on; `label` is what the UI shows.
+
+    Both are sent because they are different things: the client displays the
+    label but sends the name back on a PATCH, and conflating them would mean
+    a rule silently detaching the day a label is reworded.
+    """
     id: int
     name: str
+    label: str
     kind: str
     budget_treatment: str
     cash_treatment: str
@@ -214,6 +221,12 @@ class CategoryOut(BaseModel):
 
 class CategoryPatch(BaseModel):
     budget_treatment: BudgetTreatment
+
+
+class AccountOut(BaseModel):
+    id: int
+    name: str
+    kind: str
 
 
 # --- reimbursements --------------------------------------------------------

@@ -35,8 +35,18 @@ def today(settings: Settings = Depends(get_settings)) -> datetime.date:
 
 
 def db(settings: Settings = Depends(get_settings)) -> Iterator[sqlite3.Connection]:
-    """A read-write connection for the length of one request."""
-    con = store.connect(settings.db_path)
+    """A read-write connection for the length of one request.
+
+    `same_thread=False` because FastAPI runs a sync dependency's setup, the
+    route handler and the dependency's teardown on whichever threadpool
+    worker is free at each step -- so this connection is legitimately used
+    from more than one thread over the life of one request. Sequentially,
+    never concurrently: each step awaits the one before it. See
+    `store.connect` for why that is safe, and note that a TestClient will not
+    reproduce the failure, because with one client and a cold pool the same
+    worker tends to serve every step.
+    """
+    con = store.connect(settings.db_path, same_thread=False)
     try:
         yield con
     finally:
@@ -51,8 +61,10 @@ def db_ro(settings: Settings = Depends(get_settings)) -> Iterator[sqlite3.Connec
     it -- any write on this connection raises -- so a stray UPDATE in a
     reporting path is a loud 500 in a test rather than a silent edit in
     production.
+
+    `same_thread=False` for the same reason as `db` above.
     """
-    con = store.connect(settings.db_path, read_only=True)
+    con = store.connect(settings.db_path, read_only=True, same_thread=False)
     try:
         yield con
     finally:

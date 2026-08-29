@@ -32,7 +32,7 @@ jobs:
         run: python -m pytest -q -rs
 
   client:
-    name: client build
+    name: client
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -43,6 +43,9 @@ jobs:
           cache-dependency-path: client/package-lock.json
       - name: Install
         run: npm ci
+        working-directory: client
+      - name: Test
+        run: npm test
         working-directory: client
       - name: Build
         run: npm run build

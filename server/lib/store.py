@@ -24,7 +24,8 @@ class MigrationError(RuntimeError):
 BUSY_TIMEOUT_MS = 5000
 
 
-def connect(path: str | Path, read_only: bool = False) -> sqlite3.Connection:
+def connect(path: str | Path, read_only: bool = False,
+            same_thread: bool = True) -> sqlite3.Connection:
     """Open the database. `read_only` opens it via SQLite's mode=ro URI.
 
     A read-only connection is what makes a reporting command's promise not to
@@ -44,12 +45,27 @@ def connect(path: str | Path, read_only: bool = False) -> sqlite3.Connection:
     journal_mode is a property of the database file, not of the connection,
     so it is set once by whichever writer opens it first and persists. A
     read-only connection cannot set it, and does not need to.
+
+    `same_thread=False` lifts sqlite3's own check that a connection is only
+    used by the thread that opened it. The HTTP layer needs it and the CLI
+    does not, so it is opt-in: under a real ASGI server a sync dependency's
+    setup, the route handler and the dependency's teardown each run on
+    whichever threadpool worker is free, so one request's connection is
+    legitimately touched by three different threads -- sequentially, never
+    concurrently, since each step awaits the last. Python's sqlite3 is built
+    in serialized mode (`sqlite3.threadsafety == 3`), so even the concurrent
+    case would be safe; the check is what stops us, not the library.
+
+    Leaving it on by default keeps the check as a real guard everywhere it
+    costs nothing: a connection genuinely shared between requests would still
+    be a bug, and the CLI has no threads to confuse.
     """
     if read_only:
         con = sqlite3.connect(
-            f"{Path(path).resolve().as_uri()}?mode=ro", uri=True)
+            f"{Path(path).resolve().as_uri()}?mode=ro", uri=True,
+            check_same_thread=same_thread)
     else:
-        con = sqlite3.connect(str(path))
+        con = sqlite3.connect(str(path), check_same_thread=same_thread)
         con.execute("PRAGMA journal_mode = WAL")
     con.row_factory = sqlite3.Row
     con.execute("PRAGMA foreign_keys = ON")

@@ -107,14 +107,32 @@ npm install
 npm run dev          # http://localhost:5173
 ```
 
-The client still renders `src/lib/mockData.js`; wiring it to the API above is
-the next piece of work.
+The dev server proxies `/api` to `http://127.0.0.1:8000`, so run uvicorn
+alongside it (override with `PF_API_ORIGIN`). In production one FastAPI
+process serves both, and the client's same-origin `/api` paths work
+unchanged — which is what keeps the session cookie working with no CORS
+configuration anywhere.
+
+Every screen reads the API. There is no fixture data left in the client, and
+no second copy of any rule: the category a hand-entered row gets is decided
+by the same `categorise` the importer runs, and the weekly figures come from
+`/api/budget` rather than being recomputed in the browser. Where the client
+does aggregate — per-day bars, the Stats page — it filters exactly as the
+server's `_variable_spent` does, so the two agree.
+
+Category names are English identifiers that rules key on; the interface is
+Norwegian. `GET /api/categories` serves both a `name` and a `label`, and the
+client displays the label while sending the name back. Keeping the mapping
+server-side is deliberate: a table in the client would go stale the moment a
+category was added, and go stale silently.
 
 ## Tests
 
 ```bash
 python3 -m pip install -e . pytest httpx
 python3 -m pytest -q
+
+cd client && npm test
 ```
 
 The suite is in three parts:
@@ -130,6 +148,11 @@ The suite is in three parts:
   bearing one enumerates every route the app publishes and asserts each is
   either listed as public by design or answers 401 without a session, so a
   route added later is covered without anyone remembering to add it here.
+- **Client tests**, under `client/src/test/`, run with vitest against a fake
+  server. They cover the API wrapper's error handling, the auth gate's three
+  states, and the write paths — where a bug means bad data rather than a bad
+  render: the sign on a hand-entered amount, a correction that teaches a
+  rule, preview-before-commit on an upload.
 - **Real-data tests**, which assert this dataset's own figures — 181 rows,
   net 14 084,24, the 48 counterparty values, the −13 288,75 loan term. The
   statements are gitignored, so these skip unless `input/` is populated.
@@ -167,5 +190,6 @@ set a new passcode, which rotates the signing secret.
 
 ## Not built yet
 
-The client's data layer (it still renders fixture data), the service worker
-and installable-PWA icons, and the deferred bank fetch.
+The service worker and the installable-PWA icons (`manifest.webmanifest` has
+an empty `icons` array, so the app is not installable yet), and the deferred
+bank fetch.
