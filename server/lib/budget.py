@@ -312,3 +312,48 @@ def summarise(con: sqlite3.Connection, day: datetime.date) -> Summary:
         config=config,
         pools=pools,
         figures=figures(con, day, config, pools))
+
+
+def save_config(con: sqlite3.Connection, effective_from: datetime.date,
+                **changes: object) -> Config:
+    """Write a new configuration version, effective from a given date.
+
+    A new row rather than an UPDATE, because `budget_config` is versioned by
+    `effective_from` on purpose: when salary changes, past weeks must not
+    silently recompute. Fields not named keep the value in force on that date,
+    so changing only the savings target does not require restating income.
+
+    A second change on a date that already has a row is ordered by id, which
+    `load_config` breaks ties on, so the later write wins for that date
+    without disturbing earlier ones.
+    """
+    allowed = {"income_mode", "fixed_mode", "manual_income", "manual_fixed",
+               "savings_target", "week_starts_on"}
+    unknown = set(changes) - allowed
+    if unknown:
+        raise ValueError(f"unknown budget_config fields: {sorted(unknown)}")
+
+    try:
+        current = load_config(con, effective_from)
+        base = {
+            "income_mode": current.income_mode,
+            "fixed_mode": current.fixed_mode,
+            "manual_income": current.manual_income,
+            "manual_fixed": current.manual_fixed,
+            "savings_target": current.savings_target,
+            "week_starts_on": current.week_starts_on,
+        }
+    except LookupError:
+        # Nothing in force yet on that date -- the cold-start values are the
+        # only sensible base, and are what seed_default_config would write.
+        base = {k: v for k, v in DESIGN_CONFIG.items() if k in allowed}
+
+    base.update({k: v for k, v in changes.items() if v is not None})
+    con.execute(
+        "INSERT INTO budget_config (effective_from, income_mode, fixed_mode,"
+        " manual_income, manual_fixed, savings_target, week_starts_on)"
+        " VALUES (:effective_from, :income_mode, :fixed_mode, :manual_income,"
+        " :manual_fixed, :savings_target, :week_starts_on)",
+        {"effective_from": effective_from.isoformat(), **base})
+    con.commit()
+    return load_config(con, effective_from)

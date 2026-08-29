@@ -18,8 +18,13 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Install test dependencies
-        run: python -m pip install --upgrade pip pytest
+      - name: Install
+        # The project plus its dev group: the API tests need fastapi and
+        # httpx, and the ingest/budget tests need neither -- installing the
+        # lot keeps one command for both.
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e . pytest httpx
       - name: Run the suite
         # The real statements are gitignored, so the tests that assert this
         # dataset's own figures skip here. Everything structural runs on the

@@ -370,3 +370,227 @@ def insert_derived_rows(
 
     con.commit()
     return inserted, skipped, derived
+
+
+# --- reads and writes the HTTP API needs -----------------------------------
+#
+# The CLI only ever imported and counted. An API also has to list, filter,
+# enter one row by hand, and correct one -- and each of those is a query with
+# a sharp edge that belongs next to the schema rather than inside a route.
+
+
+def list_transactions(
+    con: sqlite3.Connection,
+    start: str | None = None,
+    end: str | None = None,
+    needs_review: bool | None = None,
+    limit: int = 200,
+    offset: int = 0,
+) -> list[sqlite3.Row]:
+    """Transactions in date order, newest first, with their category names.
+
+    Ordered by date then id descending: date alone is not a total order --
+    every row imported from one statement day shares it -- so paging over it
+    would repeat and drop rows between calls.
+    """
+    where = ["1 = 1"]
+    params: list[object] = []
+    if start is not None:
+        where.append("t.date >= ?")
+        params.append(start)
+    if end is not None:
+        where.append("t.date <= ?")
+        params.append(end)
+    if needs_review is not None:
+        where.append("t.needs_review = ?")
+        params.append(1 if needs_review else 0)
+
+    params.extend([limit, offset])
+    return list(con.execute(
+        "SELECT t.*, c.name AS category, c.kind AS category_kind,"
+        "       a.name AS account,"
+        "       COALESCE(t.budget_override, c.budget_treatment) AS treatment"
+        " FROM transactions t"
+        " JOIN accounts a ON a.id = t.account_id"
+        " LEFT JOIN categories c ON c.id = t.category_id"
+        f" WHERE {' AND '.join(where)}"
+        " ORDER BY t.date DESC, t.id DESC"
+        " LIMIT ? OFFSET ?", params))
+
+
+def get_transaction(con: sqlite3.Connection,
+                    transaction_id: int) -> sqlite3.Row | None:
+    return con.execute(
+        "SELECT t.*, c.name AS category, c.kind AS category_kind,"
+        "       a.name AS account,"
+        "       COALESCE(t.budget_override, c.budget_treatment) AS treatment"
+        " FROM transactions t"
+        " JOIN accounts a ON a.id = t.account_id"
+        " LEFT JOIN categories c ON c.id = t.category_id"
+        " WHERE t.id = ?", (transaction_id,)).fetchone()
+
+
+def insert_manual(
+    con: sqlite3.Connection,
+    date: str,
+    description: str,
+    amount: float,
+    account_id: int,
+    category: str,
+    needs_review: bool = False,
+    counterparty: str | None = None,
+    note: str | None = None,
+) -> int:
+    """Insert a hand-entered transaction. Returns its id.
+
+    origin = 'manual' and the fingerprint is left empty on purpose. A manual
+    row has no source document to be identified against, so it must not carry
+    a content fingerprint: 003's unique index covers `fingerprint <> ''`, and
+    a manual row that happened to match an imported one would otherwise
+    collide with it. `require_fingerprinted_imports` skips manual rows for the
+    same reason.
+    """
+    kind = con.execute("SELECT id, kind FROM categories WHERE name = ?",
+                       (category,)).fetchone()
+    if kind is None:
+        raise LookupError(f"unknown category: {category}")
+    batch = _manual_batch(con)
+    return con.execute(
+        "INSERT INTO transactions"
+        " (date, account_id, description, amount, category_id, is_transfer,"
+        "  needs_review, batch_id, source_row, fingerprint, occurrence,"
+        "  counterparty, note, origin)"
+        " VALUES (?,?,?,?,?,?,?,?,0,'',1,?,?,'manual')",
+        (date, account_id, description, amount, kind["id"],
+         1 if kind["kind"] == "transfer" else 0,
+         1 if needs_review else 0, batch, counterparty, note)).lastrowid
+
+
+def _manual_batch(con: sqlite3.Connection) -> int:
+    """One reusable batch row for hand entry.
+
+    batch_id is NOT NULL and references import_batches, so a manual row still
+    needs one. A batch per entry would bury real imports under thousands of
+    one-row batches, so manual entries share a single sentinel batch.
+    """
+    row = con.execute(
+        "SELECT id FROM import_batches WHERE source_file = 'manual entry'"
+    ).fetchone()
+    if row is not None:
+        return row["id"]
+    return con.execute(
+        "INSERT INTO import_batches (source_file, row_count, imported_at)"
+        " VALUES ('manual entry', 0, ?)",
+        (datetime.datetime.now().isoformat(timespec="seconds"),)).lastrowid
+
+
+def update_transaction(
+    con: sqlite3.Connection,
+    transaction_id: int,
+    category: str | None = None,
+    budget_override: str | None = None,
+    clear_override: bool = False,
+    note: str | None = None,
+) -> sqlite3.Row:
+    """Apply a correction to one row. Returns the row as it now stands.
+
+    Recategorising clears needs_review: the flag means "this category is a
+    guess", and a person choosing one has answered that. `is_transfer` is
+    rewritten from the new category's kind, since it is derived from the
+    category and would otherwise keep the old category's answer -- and that
+    flag is what keeps transfers out of the spending figures.
+    """
+    row = con.execute("SELECT id FROM transactions WHERE id = ?",
+                      (transaction_id,)).fetchone()
+    if row is None:
+        raise LookupError(f"no transaction {transaction_id}")
+
+    if category is not None:
+        target = con.execute(
+            "SELECT id, kind FROM categories WHERE name = ?",
+            (category,)).fetchone()
+        if target is None:
+            raise LookupError(f"unknown category: {category}")
+        con.execute(
+            "UPDATE transactions SET category_id = ?, is_transfer = ?,"
+            " needs_review = 0 WHERE id = ?",
+            (target["id"], 1 if target["kind"] == "transfer" else 0,
+             transaction_id))
+
+    if clear_override:
+        con.execute(
+            "UPDATE transactions SET budget_override = NULL WHERE id = ?",
+            (transaction_id,))
+    elif budget_override is not None:
+        con.execute(
+            "UPDATE transactions SET budget_override = ? WHERE id = ?",
+            (budget_override, transaction_id))
+
+    if note is not None:
+        con.execute("UPDATE transactions SET note = ? WHERE id = ?",
+                    (note, transaction_id))
+
+    con.commit()
+    return get_transaction(con, transaction_id)
+
+
+def classify_rows(
+    con: sqlite3.Connection,
+    rows: Iterable[RawRow],
+    account_id: int,
+    categoriser: Callable[[str], "object"],
+) -> list[dict]:
+    """Say what importing these rows would do, without writing anything.
+
+    The spec requires a preview before a statement upload is committed: "a
+    silent half-duplicating import is painful to unpick". This runs the same
+    identity computation as `upsert_transactions` and reports the verdict per
+    row -- `new` or `existing` -- so the preview cannot disagree with what the
+    commit then does.
+    """
+    out: list[dict] = []
+    for row, fingerprint, occurrence in with_identity(
+            list(rows), str(account_id)):
+        exists = con.execute(
+            "SELECT 1 FROM transactions"
+            " WHERE account_id = ? AND fingerprint = ? AND occurrence = ?"
+            "   AND is_derived = 0",
+            (account_id, fingerprint, occurrence)).fetchone() is not None
+        verdict = categoriser(row.description)
+        out.append({
+            "date": row.date,
+            "description": row.description,
+            "amount": row.amount,
+            "category": verdict.category,
+            "needs_review": bool(verdict.needs_review),
+            "status": "existing" if exists else "new",
+        })
+    return out
+
+
+def account_id_for(con: sqlite3.Connection, name: str) -> int:
+    row = con.execute("SELECT id FROM accounts WHERE name = ?",
+                      (name,)).fetchone()
+    if row is None:
+        raise LookupError(f"unknown account: {name}")
+    return row["id"]
+
+
+def list_categories(con: sqlite3.Connection) -> list[sqlite3.Row]:
+    return list(con.execute(
+        "SELECT id, name, kind, budget_treatment, cash_treatment"
+        " FROM categories ORDER BY kind, name"))
+
+
+def set_category_treatment(con: sqlite3.Connection, name: str,
+                           budget_treatment: str) -> sqlite3.Row:
+    """Change one category's default budget treatment (a Settings action)."""
+    changed = con.execute(
+        "UPDATE categories SET budget_treatment = ? WHERE name = ?",
+        (budget_treatment, name)).rowcount
+    if not changed:
+        raise LookupError(f"unknown category: {name}")
+    con.commit()
+    return con.execute(
+        "SELECT id, name, kind, budget_treatment, cash_treatment"
+        " FROM categories WHERE name = ?", (name,)).fetchone()

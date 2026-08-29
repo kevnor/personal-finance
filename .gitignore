@@ -11,3 +11,5 @@ db/needs_review.csv
 db/import.sql
 .claude/
 /input
+*.egg-info/
+.venv/

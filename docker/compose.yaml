@@ -1,0 +1,22 @@
+# Single service, one volume, one port. Least that works.
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - finance-data:/data
+    environment:
+      # Local midnight is what the week boundary is drawn at; under UTC a
+      # Sunday-evening purchase would land in the wrong week's envelope.
+      PF_TIMEZONE: Europe/Oslo
+      # Set to 1 only when something in front terminates TLS (tailscale
+      # serve). A `Secure` cookie sent over plain http:// is dropped by the
+      # browser, and login then silently fails to stick.
+      PF_HTTPS_ONLY: "0"
+    restart: unless-stopped
+
+volumes:
+  finance-data:

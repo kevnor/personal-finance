@@ -79,3 +79,29 @@ def outstanding(con: sqlite3.Connection) -> list[sqlite3.Row]:
         "SELECT r.*, t.date, t.description FROM reimbursements r"
         " JOIN transactions t ON t.id = r.transaction_id"
         " WHERE r.settled_at IS NULL ORDER BY t.date"))
+
+
+def settle(con: sqlite3.Connection, reimbursement_id: int,
+           settled_by_transaction_id: int | None = None,
+           settled_at: str | None = None) -> sqlite3.Row:
+    """Mark a debt as repaid. Returns the row.
+
+    `settled_by_transaction_id` points at the incoming payment when there is
+    one to point at -- an employer's transfer lands as its own transaction --
+    and is left NULL when the money came back some other way. Recording the
+    date either way is what makes `outstanding` shrink.
+    """
+    row = con.execute("SELECT id FROM reimbursements WHERE id = ?",
+                      (reimbursement_id,)).fetchone()
+    if row is None:
+        raise LookupError(f"no reimbursement {reimbursement_id}")
+    con.execute(
+        "UPDATE reimbursements SET settled_at = ?,"
+        " settled_by_transaction_id = ? WHERE id = ?",
+        (settled_at or datetime.date.today().isoformat(),
+         settled_by_transaction_id, reimbursement_id))
+    con.commit()
+    return con.execute(
+        "SELECT r.*, t.date, t.description FROM reimbursements r"
+        " JOIN transactions t ON t.id = r.transaction_id"
+        " WHERE r.id = ?", (reimbursement_id,)).fetchone()
