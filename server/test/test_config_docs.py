@@ -33,7 +33,10 @@ SETTERS = [
     ROOT / "docker" / "compose.yaml",
 ]
 
-NAME = re.compile(r"\bPF_[A-Z0-9_]+\b")
+# A trailing `*` marks prose about a family of variables ("the PF_ENTRA_*
+# variables"), not a variable, and reading one as a name reports a stale
+# entry that does not exist. The negative lookahead is the whole difference.
+NAME = re.compile(r"\bPF_[A-Z0-9_]+\b(?!\*)")
 
 
 def names_in(*paths) -> set[str]:

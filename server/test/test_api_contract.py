@@ -23,6 +23,13 @@ PUBLIC_OPERATIONS = {
     ("POST", "/api/auth/passcode"),
     ("POST", "/api/auth/login"),
     ("POST", "/api/auth/logout"),
+    # The Entra round trip. Unauthenticated of necessity, exactly as
+    # /api/auth/login is: they are how a session is obtained, so requiring
+    # one would be circular. Listed individually rather than by prefix so
+    # that a third route appearing under /api/auth/entra/ has to be added
+    # here deliberately.
+    ("GET", "/api/auth/entra/login"),
+    ("GET", "/api/auth/entra/callback"),
 }
 
 # A placeholder for each path parameter, so the request reaches the auth

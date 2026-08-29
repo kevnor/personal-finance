@@ -31,6 +31,15 @@ class PasscodeChangeIn(BaseModel):
 class AuthStatus(BaseModel):
     configured: bool
     authenticated: bool
+    # Whether an Entra app registration is configured, so the client knows
+    # whether to offer "Sign in with Microsoft" at all. Says nothing about
+    # the caller -- an unauthenticated client needs it to draw the login
+    # screen.
+    entra_available: bool = False
+    # How the current session was obtained, when there is one. The client
+    # uses it to decide whether a 401 can be retried silently: only an Entra
+    # session can, and only if the browser had one to begin with.
+    source: str | None = None
 
 
 # --- transactions ----------------------------------------------------------

@@ -11,7 +11,16 @@ import { api } from "../lib/api.js";
  * nothing to authenticate against, so setting the passcode is also what
  * signs you in; afterwards that endpoint is closed and this is a login.
  */
-export default function Login({ configured, onSignedIn }) {
+// Why the app bounced back from Entra, in the user's language. `required` is
+// not a failure: a silent renewal could not be completed without showing them
+// something, which is exactly when they should be asked to sign in.
+const NOTICES = {
+  required: "Økten er utløpt. Logg inn på nytt.",
+  denied: "Innloggingen ble avvist.",
+  expired: "Innloggingen tok for lang tid. Prøv på nytt.",
+};
+
+export default function Login({ configured, entraAvailable, notice, onSignedIn }) {
   const [passcode, setPasscode] = useState("");
   const [confirmation, setConfirmation] = useState("");
   const [mismatch, setMismatch] = useState(false);
@@ -93,12 +102,75 @@ export default function Login({ configured, onSignedIn }) {
         )}
 
         {mismatch && <InlineError error={{ detail: "Kodene er ikke like." }} />}
+        {NOTICES[notice] && <InlineError error={{ detail: NOTICES[notice] }} />}
         <InlineError error={error} />
 
         <button type="submit" className="btn-primary" disabled={!canSubmit}>
           {pending ? "Vent…" : firstRun ? "Sett kode" : "Logg inn"}
         </button>
       </form>
+
+      {entraAvailable && !firstRun && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
+          <div
+            style={{
+              font: "400 12px/1.5 var(--font-body)",
+              color: "var(--color-text-muted)",
+              textAlign: "center",
+            }}
+          >
+            eller
+          </div>
+          {/*
+            A link rather than a button with a fetch: the sign-in has to
+            happen as a top-level navigation. Entra refuses to be framed, and
+            an XHR cannot show a login page or an MFA prompt.
+          */}
+          {/*
+            `.btn-outline` is written for a <button>, which is block-level;
+            an <a> is inline, so it would ignore the width and min-height.
+            Set here rather than in the shared rule so no existing button
+            changes shape.
+          */}
+          <a
+            className="btn-outline"
+            href={entraHref()}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              boxSizing: "border-box",
+              textDecoration: "none",
+            }}
+          >
+            Logg inn med Microsoft
+          </a>
+          <div
+            style={{
+              font: "400 12px/1.5 var(--font-body)",
+              color: "var(--color-text-muted)",
+              textAlign: "center",
+            }}
+          >
+            Koden over virker fortsatt hvis Microsoft ikke er tilgjengelig.
+          </div>
+        </div>
+      )}
     </div>
   );
+}
+
+/**
+ * Where "sign in with Microsoft" goes.
+ *
+ * `next` carries the path the user was on, so a session that lapsed on the
+ * history screen comes back to the history screen. Any `?signin=` notice is
+ * dropped from it: keeping it would re-show "your session expired" on the
+ * page they land on after successfully signing in.
+ */
+function entraHref() {
+  const here = new URL(window.location.href);
+  here.searchParams.delete("signin");
+  const next = here.pathname + here.search;
+  return `/api/auth/entra/login?next=${encodeURIComponent(next)}`;
 }

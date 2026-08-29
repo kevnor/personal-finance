@@ -98,7 +98,10 @@ Interactive docs at `/docs`, schema at `/openapi.json`.
 Configuration is environment variables, all optional: `PF_DATA_DIR`,
 `PF_DB_PATH`, `PF_PASSCODE_FILE`, `PF_LOCAL_FILE` (see [Local
 configuration](#local-configuration)), `PF_STATIC_DIR`, `PF_MIGRATIONS_DIR`,
-`PF_TIMEZONE` (default `Europe/Oslo`), and `PF_HTTPS_ONLY` — set that last
+`PF_TIMEZONE` (default `Europe/Oslo`), the four Entra variables
+`PF_ENTRA_TENANT_ID`, `PF_ENTRA_CLIENT_ID`, `PF_ENTRA_CLIENT_SECRET` and
+`PF_PUBLIC_ORIGIN` (see [Authentication](#authentication)), and
+`PF_HTTPS_ONLY` — set that last
 one only when something in front terminates TLS, since a `Secure` cookie sent
 over plain HTTP is dropped by the browser and login then fails to stick.
 
@@ -258,13 +261,102 @@ authenticated session on this device. Every request still goes to the server,
 and a session it no longer accepts comes back 401, which clears the note and
 returns to the login screen.
 
+## Authentication
+
+Two ways in, and they are not equals. Microsoft Entra ID is the normal one;
+the passcode stays as a break-glass route for when it cannot be reached.
+
+Nothing here is required. With none of the four Entra variables set —
+which is what a fresh clone is — the app is passcode-only and behaves exactly
+as it did before any of this existed. Setting *some* of them raises at
+startup rather than quietly falling back: an instance meant to federate but
+silently not doing so still shows a working login screen, and nobody finds
+out until they go looking for the sign-in that was supposed to be enforced.
+
+### Registering the app
+
+In the Entra portal, App registrations → New registration:
+
+1. **Supported account types: "Accounts in this organizational directory
+   only" (single tenant).** This is the setting that matters most. Multitenant
+   means every Microsoft account in the world can present a valid token for
+   your app. The server checks the `tid` claim against your tenant and
+   refuses anything else, so a mis-set registration fails closed rather than
+   open — but set it correctly as well, rather than relying on that check
+   alone.
+2. **Redirect URI**, of type Web: `https://<your-host>/api/auth/entra/callback`.
+   It must match `PF_PUBLIC_ORIGIN` exactly.
+3. **Certificates & secrets → New client secret.** That value is
+   `PF_ENTRA_CLIENT_SECRET`. Entra shows it once. Note its expiry: when it
+   lapses, sign-in fails and the passcode is how you get back in to fix it.
+
+Then, in Enterprise applications → your app → Properties, set **Assignment
+required = Yes**, and add the household under Users and groups. That is where
+user management actually happens: adding and removing people is a click in
+Entra, not a change to this repository. Entra ID Free assigns *users*
+individually; assigning a *group* needs P1, which at household scale is a
+distinction without a difference.
+
+```bash
+PF_ENTRA_TENANT_ID=<directory (tenant) ID>
+PF_ENTRA_CLIENT_ID=<application (client) ID>
+PF_ENTRA_CLIENT_SECRET=<the secret value, not its ID>
+PF_PUBLIC_ORIGIN=https://finance.your-tailnet.ts.net
+```
+
+`PF_PUBLIC_ORIGIN` cannot be inferred from the request: behind `tailscale
+serve` the app sees plain HTTP on localhost, so a redirect built from what
+the request says would send the browser somewhere it cannot reach — and Entra
+would reject it for not matching the registration. Tailscale is otherwise no
+obstacle: Entra never calls this server, the browser does, so a tailnet-only
+hostname is fine. The server needs outbound access to
+`login.microsoftonline.com`, nothing inbound.
+
+### How a session works
+
+The app is a confidential client. It exchanges the authorization code for
+tokens over its own TLS connection to Microsoft, and no Entra token ever
+reaches the browser — what the browser gets is the same signed, httpOnly
+cookie the passcode path issues. That is what keeps the service worker and
+the offline gate unchanged.
+
+An Entra session lasts **one hour**, against the passcode's 30 days, and the
+difference is the whole point of federating: removing somebody in Entra has
+to actually lock them out, and a 30-day cookie would leave them a month of
+access after the click. When the hour lapses the client redirects once
+through Entra with `prompt=none` — no typing, but a brief full-page
+navigation. If the directory session is still live and the user is still
+assigned, they land back where they were. If they have been removed, Entra
+answers `login_required` and they get the login screen.
+
+The standing cost of keeping the passcode: a passcode session is still 30
+days and Entra governs nothing about it, so revoking someone in the directory
+does not touch a session they obtained that way. Rotating the signing secret
+(delete the credentials file, set a new passcode) is what revokes those.
+
+Sign-in requires a passcode to already be set, because the credentials file
+is where the signing secret lives. The ordering is deliberate rather than
+incidental: an instance that federated before it had a passcode would have no
+way in when the directory is unreachable, which is the one situation
+break-glass exists for.
+
+### What Entra ID Free does not give you
+
+Conditional Access (IP or device restrictions), group-based app assignment,
+dynamic groups and self-service password reset are all P1 features. Of those,
+only group-based assignment is even adjacent to this app, and assigning a
+household individually costs nothing. MFA is available on Free through
+security defaults, and is worth turning on.
+
 ## Security
 
 One passcode, argon2-hashed, in a file on the data volume beside the database
 rather than inside it — so a database restored from backup does not bring an
 old passcode with it. Sessions are stateless signed cookies (httpOnly,
 SameSite=Lax, `Secure` when `PF_HTTPS_ONLY` is set, 30 days). Login is
-rate-limited per client address.
+rate-limited per client address. Optionally federated to Entra ID; see
+[Authentication](#authentication) above for what that changes, including the
+one-hour session and what it does *not* revoke.
 
 Stated plainly, unchanged from the spec: this stops a guest's laptop or an
 IoT device on the same wifi from browsing the user's finances. It is not

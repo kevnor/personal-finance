@@ -26,11 +26,32 @@ from pathlib import Path
 from argon2 import PasswordHasher
 from argon2.exceptions import InvalidHashError, VerifyMismatchError
 
-# Sessions last 30 days, per the spec. The expiry is inside the signed token,
-# so a cookie kept past it is rejected by the server rather than merely
-# dropped by a cooperating browser.
+# A passcode session lasts 30 days, per the spec. The expiry is inside the
+# signed token, so a cookie kept past it is rejected by the server rather than
+# merely dropped by a cooperating browser.
 SESSION_TTL_SECONDS = 30 * 24 * 60 * 60
 SESSION_COOKIE = "pf_session"
+
+# An Entra session lasts an hour, and that difference is the whole point of
+# federating: removing somebody in Entra has to actually lock them out, and a
+# 30-day cookie would leave them working access for a month after the click.
+# An hour is short enough to matter and long enough that the silent renewal
+# (see routes/auth.py) is not constantly redirecting. The passcode path keeps
+# 30 days because nothing in Entra governs it -- which is the standing cost of
+# keeping it as a break-glass route, and is why it is documented rather than
+# quietly accepted.
+ENTRA_SESSION_TTL_SECONDS = 60 * 60
+
+# How a session was obtained. Recorded in the token because the two are
+# governed differently: only an Entra session can be silently renewed, and
+# only an Entra session is revocable from the directory.
+SOURCE_PASSCODE = "passcode"
+SOURCE_ENTRA = "entra"
+
+# The subject recorded for a passcode session. The passcode authenticates the
+# household, not a person -- there is no user table behind it -- so it gets a
+# fixed subject rather than a fabricated identity.
+PASSCODE_SUBJECT = "household"
 
 # Rate limit on the passcode endpoint: a short window and a small budget. A
 # passcode is short by nature, so unlimited guessing is the one attack this
@@ -158,28 +179,111 @@ def verify(credentials: Credentials, passcode: str) -> bool:
 # the intended one. Rotating the signing secret revokes everything at once.
 
 
-def issue_session(credentials: Credentials, now: float | None = None) -> str:
-    expires_at = int((now if now is not None else time.time())
-                     + SESSION_TTL_SECONDS)
-    payload = str(expires_at).encode("ascii")
-    body = base64.urlsafe_b64encode(payload).decode("ascii").rstrip("=")
-    return f"{body}.{_sign(credentials.session_secret, body)}"
+@dataclass(frozen=True)
+class Session:
+    """What a valid session cookie says: who, how, and until when."""
+    subject: str
+    source: str
+    expires_at: int
+
+    @property
+    def is_entra(self) -> bool:
+        return self.source == SOURCE_ENTRA
+
+
+def issue_session(credentials: Credentials, now: float | None = None,
+                  subject: str = PASSCODE_SUBJECT,
+                  source: str = SOURCE_PASSCODE,
+                  ttl_seconds: int | None = None) -> str:
+    """Sign a session token.
+
+    The defaults describe a passcode session, so every existing caller keeps
+    working unchanged; the Entra path passes all three.
+    """
+    if ttl_seconds is None:
+        ttl_seconds = (ENTRA_SESSION_TTL_SECONDS if source == SOURCE_ENTRA
+                       else SESSION_TTL_SECONDS)
+    return seal(credentials.session_secret,
+                {"sub": subject, "src": source}, ttl_seconds, now)
+
+
+def read_session(credentials: Credentials, token: str | None,
+                 now: float | None = None) -> Session | None:
+    """Return the session a token carries, or None if it is not usable.
+
+    One function for "is this valid" and "who is it", because splitting them
+    invites a caller to read the subject out of a token whose signature it
+    never checked. Every failure -- no cookie, a bad signature, a payload
+    this version cannot parse, an expired token -- returns None: to a caller
+    they all mean "not signed in", and distinguishing them in a response
+    would tell an attacker which part they got right.
+
+    A token issued before sessions carried a subject is not readable here and
+    so reads as signed-out. That costs one re-login on upgrade, which is the
+    right trade against carrying a second token format forever.
+    """
+    payload = unseal(credentials.session_secret, token, now)
+    if payload is None:
+        return None
+    try:
+        return Session(subject=str(payload["sub"]),
+                       source=str(payload["src"]),
+                       expires_at=int(payload["exp"]))
+    except (ValueError, TypeError, KeyError):
+        return None
 
 
 def session_is_valid(credentials: Credentials, token: str | None,
                      now: float | None = None) -> bool:
+    return read_session(credentials, token, now) is not None
+
+
+def seal(secret: str, data: dict, ttl_seconds: int,
+         now: float | None = None) -> str:
+    """Sign a short-lived payload so it can be handed to the browser safely.
+
+    Used for the session cookie and for the state carried through the Entra
+    round trip. Signed, not encrypted: nothing sealed here is a secret from
+    the person holding it -- it is their own session, or their own sign-in
+    attempt -- what matters is that they cannot alter it.
+    """
+    payload = dict(data)
+    payload["exp"] = int((now if now is not None else time.time())
+                         + ttl_seconds)
+    # Compact and key-ordered so identical data always signs to identical
+    # bytes -- a token that differed run to run would be untestable.
+    body = base64.urlsafe_b64encode(json.dumps(
+        payload, separators=(",", ":"), sort_keys=True).encode("utf-8")
+    ).decode("ascii").rstrip("=")
+    return f"{body}.{_sign(secret, body)}"
+
+
+def unseal(secret: str, token: str | None,
+           now: float | None = None) -> dict | None:
+    """The inverse of `seal`, or None if the token is not usable.
+
+    One function for "is this genuine" and "what does it say", because
+    splitting them invites a caller to read a payload whose signature it
+    never checked. Every failure -- absent, altered, unparseable, expired --
+    returns None: they all mean the same thing to a caller, and telling them
+    apart in a response would say which part an attacker got right.
+    """
     if not token or "." not in token:
-        return False
+        return None
     body, _, signature = token.partition(".")
-    if not hmac.compare_digest(_sign(credentials.session_secret, body),
-                               signature):
-        return False
+    if not hmac.compare_digest(_sign(secret, body), signature):
+        return None
     try:
         padding = "=" * (-len(body) % 4)
-        expires_at = int(base64.urlsafe_b64decode(body + padding))
-    except (ValueError, TypeError):
-        return False
-    return expires_at > (now if now is not None else time.time())
+        payload = json.loads(base64.urlsafe_b64decode(body + padding))
+        expires_at = int(payload["exp"])
+    except (ValueError, TypeError, KeyError):
+        return None
+    if not isinstance(payload, dict):
+        return None
+    if expires_at <= (now if now is not None else time.time()):
+        return None
+    return payload
 
 
 def _sign(secret: str, body: str) -> str:
