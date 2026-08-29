@@ -96,7 +96,8 @@ session cookie it hands back.
 Interactive docs at `/docs`, schema at `/openapi.json`.
 
 Configuration is environment variables, all optional: `PF_DATA_DIR`,
-`PF_DB_PATH`, `PF_PASSCODE_FILE`, `PF_STATIC_DIR`, `PF_MIGRATIONS_DIR`,
+`PF_DB_PATH`, `PF_PASSCODE_FILE`, `PF_LOCAL_FILE` (see [Local
+configuration](#local-configuration)), `PF_STATIC_DIR`, `PF_MIGRATIONS_DIR`,
 `PF_TIMEZONE` (default `Europe/Oslo`), and `PF_HTTPS_ONLY` — set that last
 one only when something in front terminates TLS, since a `Secure` cookie sent
 over plain HTTP is dropped by the browser and login then fails to stick.
@@ -136,6 +137,8 @@ person whose purpose no rule can infer. Those are facts about one household,
 not about budgeting, so they are **not** in this repository. They live in one
 gitignored file beside the database — `data/local.json`, on the same volume,
 for the same reason the passcode is there rather than in the database.
+`PF_LOCAL_FILE` moves it if something else owns that path — a mounted secret,
+say — but the default keeps it on the volume the backup already covers.
 
 Everything in it is optional, and a clone with no file at all runs fine: it
 categorises by the built-in rules alone and applies no corrections, which is
