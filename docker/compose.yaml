@@ -5,17 +5,35 @@ services:
       context: ..
       dockerfile: docker/Dockerfile
     ports:
-      - "8000:8000"
+      # Loopback only, deliberately: the app is meant to be reached
+      # exclusively through a reverse proxy running on this same machine --
+      # `tailscale serve` for the tailnet, `cloudflared` for the public
+      # internet -- never by a direct connection from the network. Binding
+      # to every interface (the bare "8000:8000" form) would let anyone on
+      # the LAN reach it over plain http, bypassing both proxies and the
+      # secure-context TLS the PWA and the session cookie depend on. It is
+      # also what makes the rate limiter's proxy-header trust in
+      # routes/auth.py safe: the only thing able to open a loopback
+      # connection here is a proxy already running on the box.
+      - "127.0.0.1:8000:8000"
     volumes:
       - finance-data:/data
     environment:
       # Local midnight is what the week boundary is drawn at; under UTC a
       # Sunday-evening purchase would land in the wrong week's envelope.
       PF_TIMEZONE: Europe/Oslo
-      # Set to 1 only when something in front terminates TLS (tailscale
-      # serve). A `Secure` cookie sent over plain http:// is dropped by the
-      # browser, and login then silently fails to stick.
+      # Set to 1 once something in front terminates TLS (tailscale serve,
+      # cloudflared) -- which, with the loopback-only binding above, is the
+      # only way anything reaches this at all in a real deployment. A
+      # `Secure` cookie sent over plain http:// is dropped by the browser,
+      # so login silently fails to stick if this is set before that TLS
+      # front-end is actually in place. Left at 0 so `docker compose up`
+      # still works before either proxy is set up.
       PF_HTTPS_ONLY: "0"
+      # Uncomment once an Entra app registration exists (see README
+      # "Authentication") and set it to the domain the public tunnel or
+      # tailnet hostname actually answers on.
+      # PF_PUBLIC_ORIGIN: https://finance.yourdomain.com
     restart: unless-stopped
 
 volumes:

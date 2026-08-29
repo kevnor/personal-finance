@@ -35,8 +35,40 @@ SIGNIN_COOKIE = "pf_signin"
 UNPROCESSABLE = 422
 
 
+# Loopback only: the app is meant to be reached exclusively via a reverse
+# proxy running on the same machine (`tailscale serve`, `cloudflared`), never
+# by a direct connection from the network. That is what makes trusting a
+# client-supplied IP header safe -- the only thing able to open a loopback
+# connection to this process is a proxy already running on the box.
+_LOOPBACK = {"127.0.0.1", "::1"}
+
+
 def _client_key(request: Request) -> str:
-    return request.client.host if request.client else "unknown"
+    """The rate limiter's key: the real client, not the proxy in front of it.
+
+    Every request the app receives arrives over loopback once it sits behind
+    a reverse proxy -- `request.client.host` is then always "127.0.0.1",
+    whoever is actually asking. Rate-limiting on that would do the opposite
+    of its job: every attacker on the internet would share one budget with
+    the household, and exhausting it would lock the household out along with
+    them, not before them.
+
+    Cloudflare Tunnel sets `Cf-Connecting-Ip` to the real client address on
+    every request it proxies, and nothing except `cloudflared` on this same
+    machine can open the loopback connection needed to send it -- so the
+    header is trusted only when the direct peer is loopback, never from a
+    connection that arrived any other way. A request proxied by something
+    else that also lands on loopback (`tailscale serve`, which sets no such
+    header) falls back to sharing one bucket for the whole tailnet; lower
+    stakes, since only devices already inside the tailnet can reach that
+    proxy at all.
+    """
+    peer = request.client.host if request.client else None
+    if peer in _LOOPBACK:
+        forwarded = request.headers.get("cf-connecting-ip")
+        if forwarded:
+            return forwarded
+    return peer or "unknown"
 
 
 def _set_session_cookie(response: Response, token: str, settings: Settings,

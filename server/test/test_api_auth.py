@@ -181,6 +181,67 @@ def test_a_successful_login_clears_the_attempt_count(client):
                            json={"passcode": "wrong"}).status_code == 401
 
 
+# -- the rate limit's key, behind a reverse proxy ---------------------------
+#
+# `_client_key` is what the limit above is actually keyed on. Once the app
+# sits behind a reverse proxy on the same machine (cloudflared, tailscale
+# serve), every request arrives over loopback -- so this is the function that
+# decides whether "rate limited per client address" still means anything, or
+# whether it has quietly become "rate limited for everyone at once".
+
+from starlette.requests import Request  # noqa: E402
+
+from server.routes.auth import _client_key  # noqa: E402
+
+
+def _request(peer: str | None, headers: dict[str, str] | None = None) -> Request:
+    scope = {
+        "type": "http",
+        "client": (peer, 0) if peer is not None else None,
+        "headers": [(k.lower().encode(), v.encode())
+                    for k, v in (headers or {}).items()],
+    }
+    return Request(scope)
+
+
+def test_a_direct_connection_is_keyed_on_its_own_address():
+    """No proxy in front at all -- local development, or an instance reached
+    directly on the LAN. Nothing to trust a header for."""
+    assert _client_key(_request("192.168.1.50")) == "192.168.1.50"
+
+
+def test_a_forwarded_header_is_trusted_only_from_loopback():
+    """The header Cloudflare Tunnel sets, honoured only when it could only
+    have arrived via a proxy already running on this machine."""
+    trusted = _request("127.0.0.1", {"cf-connecting-ip": "203.0.113.9"})
+    assert _client_key(trusted) == "203.0.113.9"
+
+    # The same header, claimed by a direct connection instead of loopback.
+    # Trusting it here is exactly the spoof this function exists to refuse:
+    # anyone on the LAN could claim to be any address they like and both
+    # dodge the limit and frame another client for it.
+    spoofed = _request("192.168.1.77", {"cf-connecting-ip": "203.0.113.9"})
+    assert _client_key(spoofed) == "192.168.1.77"
+
+
+def test_ipv6_loopback_is_recognised_too():
+    trusted = _request("::1", {"cf-connecting-ip": "203.0.113.9"})
+    assert _client_key(trusted) == "203.0.113.9"
+
+
+def test_a_loopback_connection_with_no_header_falls_back_to_loopback():
+    """The tailscale serve path: proxied, on loopback, but no client-IP header
+    to read. Everyone behind it shares one bucket -- accepted, because only
+    devices already inside the tailnet can reach that proxy at all."""
+    assert _client_key(_request("127.0.0.1")) == "127.0.0.1"
+
+
+def test_no_client_at_all_does_not_crash():
+    """ASGI permits a request with no client info at all (e.g. a Unix
+    socket). The rate limiter still needs a key, not an exception."""
+    assert _client_key(_request(None)) == "unknown"
+
+
 def test_the_window_expires():
     limiter = security.RateLimiter(attempts=2, window_seconds=60)
     now = time.time()

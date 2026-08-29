@@ -261,6 +261,80 @@ authenticated session on this device. Every request still goes to the server,
 and a session it no longer accepts comes back 401, which clears the note and
 returns to the login screen.
 
+## Publishing it
+
+The app is designed to be reached only through a reverse proxy running on the
+same machine, never by a direct connection from the network — see
+`docker/compose.yaml`, which now binds the container's port to loopback for
+exactly that reason. Two proxies fit that shape:
+
+- **`tailscale serve`**, for household devices only — the setup this repo has
+  assumed throughout: `https://<machine>.<tailnet>.ts.net`, reachable only
+  from a device signed into the tailnet.
+- **Cloudflare Tunnel**, for the public internet, on your own domain.
+
+Federating to Entra ID (see [Authentication](#authentication) below) is worth
+doing *before* going public: the passcode was sized for "a guest's laptop on
+the same wifi," and putting it in front of the whole internet instead asks a
+short, rate-limited secret to hold against every scanner and bot on it. Entra
+plus **Assignment required = Yes** means only people you named can reach the
+login screen at all, and the passcode still works as break-glass behind it.
+
+### Cloudflare Tunnel, on a Raspberry Pi
+
+Assumes a domain already on Cloudflare, and Raspberry Pi OS (Debian-based).
+
+```bash
+# Add Cloudflare's package repo and install cloudflared
+sudo mkdir -p --mode=0755 /usr/share/keyrings
+curl -fsSL https://pkg.cloudflare.com/cloudflare-main.gpg   | sudo tee /usr/share/keyrings/cloudflare-main.gpg >/dev/null
+echo "deb [signed-by=/usr/share/keyrings/cloudflare-main.gpg] https://pkg.cloudflare.com/cloudflared $(lsb_release -cs) main"   | sudo tee /etc/apt/sources.list.d/cloudflared.list
+sudo apt-get update && sudo apt-get install cloudflared
+
+# Authenticate (opens a URL -- open it on any device, not necessarily the Pi)
+cloudflared tunnel login
+
+# One tunnel, one credentials file
+cloudflared tunnel create personal-finance
+
+# Point a hostname on your domain at it
+cloudflared tunnel route dns personal-finance finance.yourdomain.com
+```
+
+Then `/etc/cloudflared/config.yml`:
+
+```yaml
+tunnel: <the tunnel ID cloudflared just printed>
+credentials-file: /root/.cloudflared/<tunnel ID>.json
+
+ingress:
+  # Loopback: the same port compose.yaml now binds to 127.0.0.1 only.
+  - hostname: finance.yourdomain.com
+    service: http://127.0.0.1:8000
+  - service: http_status:404   # cloudflared requires a catch-all rule
+```
+
+```bash
+sudo cloudflared service install
+sudo systemctl enable --now cloudflared
+```
+
+Then, in `docker/compose.yaml`: set `PF_HTTPS_ONLY: "1"` (the tunnel is what
+terminates TLS now, so the cookie can require it) and, if Entra is
+configured, `PF_PUBLIC_ORIGIN: https://finance.yourdomain.com` — it must
+match the hostname above exactly, and the Entra app registration's redirect
+URI in turn must match that. `docker compose -f docker/compose.yaml up -d
+--build` picks up both.
+
+The rate limiter in `routes/auth.py` already accounts for this: behind any
+loopback proxy, every request would otherwise arrive from `127.0.0.1`,
+which would rate-limit the whole internet as a single caller rather than
+each attacker individually — and once that shared budget is spent, it would
+lock the household out along with everyone else. It trusts Cloudflare's
+`Cf-Connecting-Ip` header for the real address, and only when the direct
+connection is actually loopback, so nothing reachable from outside can spoof
+it.
+
 ## Authentication
 
 Two ways in, and they are not equals. Microsoft Entra ID is the normal one;
