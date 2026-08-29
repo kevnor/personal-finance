@@ -27,7 +27,8 @@ categorisation rules are shaped the way they are — is documented in
 | `server/lib/store.py` | Connections, migrations, transaction writes |
 | `server/corrections.py` | One-off account-holder facts no rule can express |
 | `db/migrations/` | Numbered SQL migrations, applied in filename order |
-| `client/` | React PWA (currently running on fixture data) |
+| `client/` | React PWA |
+| `client/src/sw.js` | Service worker; its rules live in `lib/swStrategy.js` |
 | `docker/` | Dockerfile and compose file |
 | `data/` | The live database — gitignored |
 | `input/` | Drop-zone for statements — gitignored |
@@ -150,9 +151,11 @@ The suite is in three parts:
   route added later is covered without anyone remembering to add it here.
 - **Client tests**, under `client/src/test/`, run with vitest against a fake
   server. They cover the API wrapper's error handling, the auth gate's three
-  states, and the write paths — where a bug means bad data rather than a bad
+  states, the write paths — where a bug means bad data rather than a bad
   render: the sign on a hand-entered amount, a correction that teaches a
-  rule, preview-before-commit on an upload.
+  rule, preview-before-commit on an upload — and the service worker's caching
+  rules, which are the worst thing in a web app to get wrong, since a worker
+  persists across reloads and keeps serving whatever it decided to keep.
 - **Real-data tests**, which assert this dataset's own figures — 181 rows,
   net 14 084,24, the 48 counterparty values, the −13 288,75 loan term. The
   statements are gitignored, so these skip unless `input/` is populated.
@@ -173,6 +176,40 @@ Numbers must stay contiguous — a gap is the same divergence hazard, since
 migrations are skipped by name but ordered by filename. `004_reserved.sql`
 holds a slot that was skipped during development; a test enforces the rule.
 
+## Offline and installation
+
+The client is a PWA: `manifest.webmanifest` plus a service worker registered
+from the root, so it installs to a home screen and opens without a browser
+chrome. Both need a **secure context** — service workers only register over
+HTTPS or on `localhost`. Served as `http://192.168.1.x:8000` there is no
+worker and no install prompt, which is why `tailscale serve` is part of the
+design rather than a nicety.
+
+What the worker caches, and why (the rules are one pure function,
+`src/lib/swStrategy.js`, with its own tests):
+
+| Request | Strategy |
+|---|---|
+| Navigations | Network first, cached shell behind it — a reload works with no signal |
+| `/assets/*` | Cache first; Vite content-hashes them, so a URL's bytes never change |
+| `GET /api/*` | Network first, last response as fallback — this is the offline promise |
+| `/api/auth/*` | Never cached: a stale `authenticated: true` would show the app to someone the server has already stopped accepting |
+| Writes | Never cached, never queued |
+
+**Reads survive going offline; writes do not.** A write queue means conflict
+resolution and a sync state machine, and worse, a user who believes an
+expense was recorded when it was not. The app says so rather than hiding it:
+offline it shows a standing notice, and a save fails with a message instead
+of appearing to work.
+
+One consequence worth knowing: because auth state is never cached, the app
+falls back to a local note (`localStorage`) to decide it may open offline.
+That is not an authentication decision and cannot be used as one — it only
+unlocks data already in this browser's own cache, put there by an
+authenticated session on this device. Every request still goes to the server,
+and a session it no longer accepts comes back 401, which clears the note and
+returns to the login screen.
+
 ## Security
 
 One passcode, argon2-hashed, in a file on the data volume beside the database
@@ -190,6 +227,5 @@ set a new passcode, which rotates the signing secret.
 
 ## Not built yet
 
-The service worker and the installable-PWA icons (`manifest.webmanifest` has
-an empty `icons` array, so the app is not installable yet), and the deferred
-bank fetch.
+The bank fetch, deliberately deferred — see "Deferred: bank integration" in
+the spec. The ingest pipeline is shaped so it lands as a fourth source.

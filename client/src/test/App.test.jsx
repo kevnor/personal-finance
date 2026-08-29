@@ -206,3 +206,110 @@ describe("Home", () => {
     expect(await screen.findByText(/Anslag:/)).toBeInTheDocument();
   });
 });
+
+describe("offline", () => {
+  const setOnline = (value) =>
+    Object.defineProperty(window.navigator, "onLine", { value, configurable: true });
+
+  it("says so when the device is offline, because writes will fail", async () => {
+    // The offline behaviour is asymmetric: reads fall back to the cache,
+    // writes do not. Without the notice the app looks normal while silently
+    // refusing to save anything.
+    setOnline(false);
+    server(signedInRoutes());
+    render(<App />);
+    expect(await screen.findByText(/Ingen forbindelse/)).toBeInTheDocument();
+    setOnline(true);
+  });
+
+  it("shows nothing extra when online", async () => {
+    setOnline(true);
+    server(signedInRoutes());
+    render(<App />);
+    await screen.findByText("igjen i dag");
+    expect(screen.queryByText(/Ingen forbindelse/)).not.toBeInTheDocument();
+  });
+
+  it("clears the notice when the connection returns", async () => {
+    setOnline(false);
+    server(signedInRoutes());
+    render(<App />);
+    await screen.findByText(/Ingen forbindelse/);
+
+    setOnline(true);
+    window.dispatchEvent(new Event("online"));
+    await waitFor(() =>
+      expect(screen.queryByText(/Ingen forbindelse/)).not.toBeInTheDocument(),
+    );
+  });
+});
+
+describe("opening with no server", () => {
+  const unreachable = () => vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("Failed to fetch")));
+
+  beforeEach(() => localStorage.clear());
+
+  it("opens from cache when this browser was signed in", async () => {
+    // The worker never caches /api/auth/status — a cached
+    // `authenticated: true` would show the app to someone whose session the
+    // server has already stopped accepting — so without the local note the
+    // gate can never resolve offline and the offline promise is dead.
+    localStorage.setItem("pf.signed-in", "1");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url) => {
+        if (String(url).startsWith("/api/auth/")) throw new TypeError("Failed to fetch");
+        const routes = signedInRoutes();
+        for (const [pattern, body] of Object.entries(routes)) {
+          const [method, path] = pattern.split(" ");
+          if (method === "GET" && (url === path || String(url).startsWith(`${path}?`))) {
+            return { ok: true, status: 200, text: async () => JSON.stringify(body) };
+          }
+        }
+        throw new TypeError("Failed to fetch");
+      }),
+    );
+    render(<App />);
+    expect(await screen.findByText("igjen i dag")).toBeInTheDocument();
+  });
+
+  it("does not open from cache when this browser was never signed in", async () => {
+    // Otherwise an unreachable server would be a way past the gate. Asserted
+    // by what the app *asks for*: with no local note it must stop at the
+    // gate, so it never reaches the reference-data load behind it. Checking
+    // only the rendered text is not enough -- that load fails offline too,
+    // and produces the same message from the wrong side of the gate.
+    const asked = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url) => {
+        asked.push(String(url));
+        throw new TypeError("Failed to fetch");
+      }),
+    );
+
+    render(<App />);
+    expect(await screen.findByRole("alert")).toHaveTextContent(/kontakt/i);
+    expect(screen.queryByText("igjen i dag")).not.toBeInTheDocument();
+    expect(asked).toContain("/api/auth/status");
+    expect(asked.filter((u) => u.startsWith("/api/categories"))).toEqual([]);
+    expect(asked.filter((u) => u.startsWith("/api/budget"))).toEqual([]);
+  });
+
+  it("forgets the note on sign-out, so the next offline open is refused", async () => {
+    server(signedInRoutes({ "POST /api/auth/logout": { configured: true, authenticated: false } }));
+    render(<App />);
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("button", { name: "Innstillinger" }));
+    await user.click(await screen.findByRole("button", { name: "Logg ut" }));
+    await screen.findByRole("button", { name: "Logg inn" });
+    expect(localStorage.getItem("pf.signed-in")).toBeNull();
+  });
+
+  it("records the note once the server confirms a session", async () => {
+    server(signedInRoutes());
+    render(<App />);
+    await screen.findByText("igjen i dag");
+    await waitFor(() => expect(localStorage.getItem("pf.signed-in")).toBe("1"));
+  });
+});

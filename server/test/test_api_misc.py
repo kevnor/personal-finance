@@ -148,8 +148,11 @@ def build_client_dir(tmp_path):
     static = tmp_path / "dist"
     (static / "assets").mkdir(parents=True)
     (static / "index.html").write_text("<!doctype html>app", encoding="utf-8")
-    (static / "assets" / "app.js").write_text("console.log(1)", encoding="utf-8")
+    (static / "assets" / "index-abc123.js").write_text("console.log(1)", encoding="utf-8")
     (static / "manifest.webmanifest").write_text("{}", encoding="utf-8")
+    (static / "sw.js").write_text("self.addEventListener('fetch', () => {})",
+                                  encoding="utf-8")
+    (static / "icon-192.png").write_bytes(b"\x89PNG\r\n\x1a\n")
     return static
 
 
@@ -174,7 +177,7 @@ def test_the_built_client_is_served_at_the_root(served):
 
 
 def test_hashed_assets_are_served(served):
-    assert served.get("/assets/app.js").status_code == 200
+    assert served.get("/assets/index-abc123.js").status_code == 200
 
 
 def test_an_unknown_path_falls_back_to_the_app_shell(served):
@@ -262,3 +265,32 @@ def test_an_account_name_from_the_list_is_accepted_by_hand_entry(client):
             "date": "2026-07-15", "description": "Rema Lorenveien, Oslo",
             "amount": -10.0, "account": account["name"]})
         assert response.status_code == 201, account["name"]
+
+
+# -- the PWA ----------------------------------------------------------------
+
+def test_the_service_worker_is_served_from_the_root(served):
+    """A service worker's scope is its own directory, so one served from
+    /assets/ would control /assets/ and nothing else -- registering
+    successfully and doing nothing, which is the hardest kind of broken to
+    notice."""
+    response = served.get("/sw.js")
+    assert response.status_code == 200
+    assert "fetch" in response.text
+
+
+def test_the_manifest_and_icons_are_served(served):
+    assert served.get("/manifest.webmanifest").status_code == 200
+    assert served.get("/icon-192.png").status_code == 200
+
+
+def test_hashed_assets_are_cached_hard_and_everything_else_is_not(served):
+    """Only /assets/ carries a content hash, so only /assets/ can safely be
+    frozen. Freezing the shell or the worker would pin a browser to an old
+    version until its heuristic cache happened to expire."""
+    assert "immutable" in served.get("/assets/index-abc123.js").headers["cache-control"]
+
+    for path in ("/", "/sw.js", "/manifest.webmanifest", "/icon-192.png"):
+        header = served.get(path).headers["cache-control"]
+        assert "immutable" not in header, path
+        assert "no-cache" in header, path

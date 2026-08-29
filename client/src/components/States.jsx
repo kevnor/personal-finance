@@ -92,3 +92,40 @@ export function InlineError({ error }) {
     </div>
   );
 }
+
+/**
+ * A standing notice that the device is offline.
+ *
+ * The offline behaviour is deliberately asymmetric — reads fall back to the
+ * last cached response, writes fail outright — so without this the app looks
+ * normal while silently refusing to save anything.
+ */
+export function OfflineBar() {
+  return (
+    <div
+      role="status"
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        padding: "8px 12px",
+        borderRadius: 8,
+        background: "var(--neutral-900)",
+        border: "1px solid var(--color-divider-strong)",
+        font: "400 11.5px/1.4 var(--font-body)",
+        color: "var(--color-text-muted)",
+      }}
+    >
+      <span
+        style={{
+          width: 6,
+          height: 6,
+          borderRadius: 9999,
+          background: "var(--color-text-faint)",
+          flex: "none",
+        }}
+      />
+      Ingen forbindelse — viser sist lagrede tall. Nye utgifter kan ikke lagres nå.
+    </div>
+  );
+}

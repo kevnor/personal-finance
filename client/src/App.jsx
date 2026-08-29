@@ -1,10 +1,12 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import BottomNav from "./components/BottomNav.jsx";
 import AddSheet from "./components/AddSheet.jsx";
-import { ErrorState, Loading } from "./components/States.jsx";
+import { ErrorState, Loading, OfflineBar } from "./components/States.jsx";
 import { AppDataProvider, buildAppData } from "./context/AppData.jsx";
+import { useOnline } from "./hooks/useOnline.js";
 import { useResource } from "./hooks/useResource.js";
 import { api } from "./lib/api.js";
+import { rememberSignedIn, wasSignedIn } from "./lib/session.js";
 import Home from "./pages/Home.jsx";
 import History from "./pages/History.jsx";
 import Login from "./pages/Login.jsx";
@@ -26,8 +28,28 @@ export default function App() {
   const [session, setSession] = useState(null);
   const auth = useResource(() => api.auth.status(), [revision]);
 
+  const signOut = useCallback(() => {
+    rememberSignedIn(false);
+    setSession(false);
+  }, []);
+
+  // Record the answer whenever the server gives one, so there is something to
+  // fall back on when it cannot be reached.
+  useEffect(() => {
+    if (auth.data) rememberSignedIn(auth.data.authenticated);
+  }, [auth.data]);
+
+  // The server could not be reached at all (status 0, not an HTTP error). The
+  // worker never caches auth state -- a cached `authenticated: true` would
+  // show the app to someone whose session the server has already stopped
+  // accepting -- so there is no answer to fall back to except the local note.
+  // See lib/session.js for why trusting it here is not an authentication
+  // decision: it only unlocks this browser's own cache.
+  if (auth.error?.status === 0 && wasSignedIn()) {
+    return <SignedIn revision={revision} onChanged={changed} onSignedOut={signOut} />;
+  }
+
   const signedIn = session ?? auth.data?.authenticated ?? false;
-  const signOut = useCallback(() => setSession(false), []);
 
   if (auth.loading && !auth.data) return <Shell><Loading /></Shell>;
   if (auth.error) return <Shell><ErrorState error={auth.error} onRetry={auth.reload} /></Shell>;
@@ -38,6 +60,7 @@ export default function App() {
         <Login
           configured={auth.data?.configured ?? false}
           onSignedIn={() => {
+            rememberSignedIn(true);
             setSession(true);
             changed();
           }}
@@ -59,6 +82,7 @@ export default function App() {
 function SignedIn({ revision, onChanged, onSignedOut }) {
   const [tab, setTab] = useState("home");
   const [addOpen, setAddOpen] = useState(false);
+  const online = useOnline();
 
   const reference = useResource(
     () => Promise.all([api.categories.list(), api.accounts.list()]),
@@ -120,6 +144,7 @@ function SignedIn({ revision, onChanged, onSignedOut }) {
           </>
         }
       >
+        {!online && <div style={{ marginBottom: 14 }}><OfflineBar /></div>}
         {page}
       </Shell>
     </AppDataProvider>

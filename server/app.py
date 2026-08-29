@@ -96,6 +96,26 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     return app
 
 
+# Only /assets/ carries a content hash in its filenames, so only /assets/ can
+# safely be frozen: a given URL's bytes there never change. Everything else --
+# the shell, the worker, the manifest, the icons -- is fetched by a stable
+# name, so it must be revalidated or a new deploy reaches a browser that
+# already has the old one only when its heuristic cache happens to expire.
+# The service worker matters most: it decides what everything else serves, so
+# a stale copy is the one file that can pin the whole app to an old version.
+IMMUTABLE = "public, max-age=31536000, immutable"
+NO_CACHE = "no-cache"
+
+
+class HashedAssets(StaticFiles):
+    """StaticFiles that marks its content-hashed files immutable."""
+
+    def file_response(self, *args, **kwargs):
+        response = super().file_response(*args, **kwargs)
+        response.headers["Cache-Control"] = IMMUTABLE
+        return response
+
+
 def _mount_client(app: FastAPI, static_dir: Path) -> None:
     """Serve the built PWA, if it has been built.
 
@@ -103,6 +123,11 @@ def _mount_client(app: FastAPI, static_dir: Path) -> None:
     tests, so a missing directory is normal rather than an error. Unknown
     paths fall back to index.html because the client routes in the browser:
     without the fallback, reloading on any screen but Home would 404.
+
+    `sw.js` is served from the root on purpose, not from /assets: a service
+    worker's scope is its own directory, so one served from /assets/ would
+    control /assets/ and nothing else -- registering successfully and doing
+    nothing, which is the hardest kind of broken to notice.
     """
     if not static_dir.is_dir():
         return
@@ -110,7 +135,7 @@ def _mount_client(app: FastAPI, static_dir: Path) -> None:
     index = static_dir / "index.html"
     assets = static_dir / "assets"
     if assets.is_dir():
-        app.mount("/assets", StaticFiles(directory=assets), name="assets")
+        app.mount("/assets", HashedAssets(directory=assets), name="assets")
 
     @app.get("/{path:path}", include_in_schema=False)
     def spa(path: str):
@@ -119,8 +144,8 @@ def _mount_client(app: FastAPI, static_dir: Path) -> None:
         # without this check `../../data/passcode.json` would be served.
         if (path and candidate.is_file()
                 and candidate.is_relative_to(static_dir.resolve())):
-            return FileResponse(candidate)
-        return FileResponse(index)
+            return FileResponse(candidate, headers={"Cache-Control": NO_CACHE})
+        return FileResponse(index, headers={"Cache-Control": NO_CACHE})
 
 
 # The ASGI entrypoint: `uvicorn server.app:app --host 0.0.0.0 --port 8000`.
