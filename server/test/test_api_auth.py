@@ -224,6 +224,39 @@ def test_a_forwarded_header_is_trusted_only_from_loopback():
     assert _client_key(spoofed) == "192.168.1.77"
 
 
+def test_a_forwarded_for_chain_is_read_from_the_right():
+    """`X-Forwarded-For` accumulates as `client, proxy1, ...`, each hop
+    appending what it heard from. With one trusted proxy in front, only its
+    entry -- the rightmost -- is vouched for; everything left of it was
+    supplied by the caller. Taking the leftmost is the standard way this is
+    got wrong, and it hands the caller a free choice of key."""
+    forged = _request("127.0.0.1",
+                      {"x-forwarded-for": "10.9.9.9, 203.0.113.9"})
+    assert _client_key(forged) == "203.0.113.9"
+
+
+def test_a_single_entry_chain_is_the_client():
+    single = _request("127.0.0.1", {"x-forwarded-for": "203.0.113.9"})
+    assert _client_key(single) == "203.0.113.9"
+
+
+def test_a_forwarded_for_chain_is_ignored_from_a_direct_connection():
+    """Same reasoning as the Cloudflare header: off loopback it is just a
+    caller-supplied string."""
+    spoofed = _request("192.168.1.77", {"x-forwarded-for": "203.0.113.9"})
+    assert _client_key(spoofed) == "192.168.1.77"
+
+
+def test_a_malformed_chain_does_not_collapse_everyone_into_one_bucket():
+    """A trailing comma would otherwise split to an empty final element, and
+    every caller behind the proxy would key on "" together."""
+    assert _client_key(
+        _request("127.0.0.1", {"x-forwarded-for": "203.0.113.9, "})
+    ) == "203.0.113.9"
+    assert _client_key(
+        _request("127.0.0.1", {"x-forwarded-for": " , "})) == "127.0.0.1"
+
+
 def test_ipv6_loopback_is_recognised_too():
     trusted = _request("::1", {"cf-connecting-ip": "203.0.113.9"})
     assert _client_key(trusted) == "203.0.113.9"

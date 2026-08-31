@@ -261,79 +261,100 @@ authenticated session on this device. Every request still goes to the server,
 and a session it no longer accepts comes back 401, which clears the note and
 returns to the login screen.
 
-## Publishing it
+## Hosting it privately
 
-The app is designed to be reached only through a reverse proxy running on the
-same machine, never by a direct connection from the network — see
-`docker/compose.yaml`, which now binds the container's port to loopback for
-exactly that reason. Two proxies fit that shape:
+One Raspberry Pi on the home network, reached only by the household, with
+Microsoft sign-in. That combination has exactly one hard constraint, and it
+decides the whole shape of the deployment:
 
-- **`tailscale serve`**, for household devices only — the setup this repo has
-  assumed throughout: `https://<machine>.<tailnet>.ts.net`, reachable only
-  from a device signed into the tailnet.
-- **Cloudflare Tunnel**, for the public internet, on your own domain.
+> **Entra will not accept an `http://` redirect URI, and browsers will not
+> register a service worker outside a secure context.** `http://192.168.1.50:8000`
+> fails both. Private hosting therefore still needs real HTTPS on a hostname
+> with a certificate the browser already trusts — it does *not* need the app
+> to be reachable from the internet.
 
-Federating to Entra ID (see [Authentication](#authentication) below) is worth
-doing *before* going public: the passcode was sized for "a guest's laptop on
-the same wifi," and putting it in front of the whole internet instead asks a
-short, rate-limited secret to hold against every scanner and bot on it. Entra
-plus **Assignment required = Yes** means only people you named can reach the
-login screen at all, and the passcode still works as break-glass behind it.
+Those are different things, and the difference is what makes this work.
+Entra never connects to the Pi. The **browser** does the redirecting, and the
+**Pi** makes its own outbound call to Microsoft to exchange the code. So the
+sign-in works perfectly well against a host that only exists on your own
+network — as long as the browser can reach it over trusted TLS.
 
-### Cloudflare Tunnel, on a Raspberry Pi
+Sign-in does need the Pi to have working outbound internet. When it does not,
+Entra sign-in fails with a 503 that says so, and the passcode is the way in —
+which is what it is there for.
 
-Assumes a domain already on Cloudflare, and Raspberry Pi OS (Debian-based).
-
-```bash
-# Add Cloudflare's package repo and install cloudflared
-sudo mkdir -p --mode=0755 /usr/share/keyrings
-curl -fsSL https://pkg.cloudflare.com/cloudflare-main.gpg   | sudo tee /usr/share/keyrings/cloudflare-main.gpg >/dev/null
-echo "deb [signed-by=/usr/share/keyrings/cloudflare-main.gpg] https://pkg.cloudflare.com/cloudflared $(lsb_release -cs) main"   | sudo tee /etc/apt/sources.list.d/cloudflared.list
-sudo apt-get update && sudo apt-get install cloudflared
-
-# Authenticate (opens a URL -- open it on any device, not necessarily the Pi)
-cloudflared tunnel login
-
-# One tunnel, one credentials file
-cloudflared tunnel create personal-finance
-
-# Point a hostname on your domain at it
-cloudflared tunnel route dns personal-finance finance.yourdomain.com
-```
-
-Then `/etc/cloudflared/config.yml`:
-
-```yaml
-tunnel: <the tunnel ID cloudflared just printed>
-credentials-file: /root/.cloudflared/<tunnel ID>.json
-
-ingress:
-  # Loopback: the same port compose.yaml now binds to 127.0.0.1 only.
-  - hostname: finance.yourdomain.com
-    service: http://127.0.0.1:8000
-  - service: http_status:404   # cloudflared requires a catch-all rule
-```
+### Tailscale (recommended)
 
 ```bash
-sudo cloudflared service install
-sudo systemctl enable --now cloudflared
+tailscale serve --bg 8000
+tailscale serve status      # prints the https://<machine>.<tailnet>.ts.net URL
 ```
 
-Then, in `docker/compose.yaml`: set `PF_HTTPS_ONLY: "1"` (the tunnel is what
-terminates TLS now, so the cookie can require it) and, if Entra is
-configured, `PF_PUBLIC_ORIGIN: https://finance.yourdomain.com` — it must
-match the hostname above exactly, and the Entra app registration's redirect
-URI in turn must match that. `docker compose -f docker/compose.yaml up -d
---build` picks up both.
+Tailscale provisions a genuine Let's Encrypt certificate for that hostname and
+terminates TLS itself. The name resolves publicly but only *routes* inside
+your tailnet, so the Pi stays unreachable from the internet while the browser
+gets exactly the trusted HTTPS both Entra and the service worker require.
+Nothing to renew, no certificate to install on each device, no ports opened on
+the router — and it keeps working away from home, which for an app you check
+in a shop is the point rather than a bonus.
 
-The rate limiter in `routes/auth.py` already accounts for this: behind any
-loopback proxy, every request would otherwise arrive from `127.0.0.1`,
-which would rate-limit the whole internet as a single caller rather than
-each attacker individually — and once that shared budget is spent, it would
-lock the household out along with everyone else. It trusts Cloudflare's
-`Cf-Connecting-Ip` header for the real address, and only when the direct
-connection is actually loopback, so nothing reachable from outside can spoof
-it.
+Set `PF_PUBLIC_ORIGIN` to that URL, and register it plus
+`/api/auth/entra/callback` as the redirect URI.
+
+### Your own domain on the LAN
+
+If you would rather not put Tailscale on each device, and you have a domain
+whose DNS you control:
+
+1. Point `finance.yourdomain.com` at the Pi's **private** address
+   (`A 192.168.1.50`). A private address in public DNS is unroutable from the
+   internet, so this publishes a name, not a service.
+2. Have Caddy obtain the certificate over the **DNS-01** challenge, which
+   proves the domain by writing a DNS record rather than by accepting an
+   inbound connection — so still no ports open. It needs an API token for
+   your DNS provider, on the Pi.
+
+```caddyfile
+finance.yourdomain.com {
+    tls { dns cloudflare {env.CF_API_TOKEN} }
+    reverse_proxy 127.0.0.1:8000
+}
+```
+
+Two things to know before choosing this: it only works while you are on the
+home network, and many routers refuse public DNS answers that point at
+private addresses ("DNS rebinding protection"), which breaks resolution until
+you add a local override. Neither applies to the Tailscale route.
+
+### Either way
+
+In `docker/compose.yaml`, set `PF_HTTPS_ONLY: "1"` once TLS is actually
+terminated in front — the proxy is then the only thing that can reach the app
+at all, since the published port is bound to loopback — and
+`PF_PUBLIC_ORIGIN` to the HTTPS origin above if Entra is configured. The app
+itself needs no proxy awareness: it builds no absolute URLs from the request,
+takes the redirect URI from `PF_PUBLIC_ORIGIN`, and decides the cookie's
+`Secure` flag from `PF_HTTPS_ONLY` rather than from the scheme it sees.
+
+The login rate limit does read one thing from the proxy. Behind any of these,
+every request arrives over loopback, so `request.client.host` is `127.0.0.1`
+for every caller and limiting on it would give the whole network one shared
+budget — which, once spent, locks the household out along with whoever spent
+it. `_client_key` in `routes/auth.py` reads the real address from
+`X-Forwarded-For` (rightmost entry) or `Cf-Connecting-Ip`, and only when the
+direct connection is loopback, so nothing reachable from the network can
+claim an address it does not have. A proxy that sets neither falls back to one
+shared bucket — coarse, but the callers who can reach it are already only the
+household.
+
+### Not exposing it publicly
+
+Deliberately undocumented. The threat model below assumes the network
+boundary does the real work; put this on the open internet and a short
+passcode and one Entra tenant become the only boundary, in front of every
+scanner on it. Entra with **Assignment required** would carry most of that
+weight, but the honest answer is that nothing here has been hardened for it,
+so the guidance is the private routes above.
 
 ## Authentication
 

@@ -53,21 +53,41 @@ def _client_key(request: Request) -> str:
     the household, and exhausting it would lock the household out along with
     them, not before them.
 
-    Cloudflare Tunnel sets `Cf-Connecting-Ip` to the real client address on
-    every request it proxies, and nothing except `cloudflared` on this same
-    machine can open the loopback connection needed to send it -- so the
-    header is trusted only when the direct peer is loopback, never from a
-    connection that arrived any other way. A request proxied by something
-    else that also lands on loopback (`tailscale serve`, which sets no such
-    header) falls back to sharing one bucket for the whole tailnet; lower
-    stakes, since only devices already inside the tailnet can reach that
-    proxy at all.
+    A proxy states the real address in a header -- `X-Forwarded-For` for the
+    general case (Caddy, nginx), `Cf-Connecting-Ip` where Cloudflare is in
+    front. Either is trusted **only** when the direct peer is loopback: on
+    this deployment nothing but a proxy running on this same machine can open
+    such a connection, so the header cannot be set by anything reachable from
+    the network. Trusting it unconditionally would be the opposite of a
+    limit, since any caller could then claim any address it liked, both
+    dodging its own budget and spending someone else's.
+
+    `X-Forwarded-For` is read right to left. It accumulates as
+    `client, proxy1, proxy2`, each hop appending the address it heard from --
+    so with exactly one trusted proxy in front, which is this topology, the
+    **rightmost** entry is the one that proxy observed and the only one it
+    vouches for. Anything to its left was supplied by the caller and is
+    exactly as forgeable as the header itself; taking the leftmost entry is
+    the standard way this check is got wrong.
+
+    A proxy that sets neither header falls back to keying on loopback -- one
+    shared bucket for everyone behind it. Coarse, but safe here: whether a
+    given proxy forwards the address is the proxy's business, and on a
+    private deployment the set of callers who can reach it is already
+    restricted to the household.
     """
     peer = request.client.host if request.client else None
     if peer in _LOOPBACK:
-        forwarded = request.headers.get("cf-connecting-ip")
-        if forwarded:
-            return forwarded
+        stated = request.headers.get("cf-connecting-ip")
+        if stated:
+            return stated.strip()
+        chain = request.headers.get("x-forwarded-for")
+        if chain:
+            # Rightmost: see above. A trailing comma or empty element would
+            # otherwise yield "" and collapse every caller into one bucket.
+            hops = [hop.strip() for hop in chain.split(",") if hop.strip()]
+            if hops:
+                return hops[-1]
     return peer or "unknown"
 
 

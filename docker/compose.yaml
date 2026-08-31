@@ -7,8 +7,9 @@ services:
     ports:
       # Loopback only, deliberately: the app is meant to be reached
       # exclusively through a reverse proxy running on this same machine --
-      # `tailscale serve` for the tailnet, `cloudflared` for the public
-      # internet -- never by a direct connection from the network. Binding
+      # `tailscale serve`, or Caddy on a LAN hostname -- never by a direct
+      # connection from the network. See README "Hosting it privately".
+      # Binding
       # to every interface (the bare "8000:8000" form) would let anyone on
       # the LAN reach it over plain http, bypassing both proxies and the
       # secure-context TLS the PWA and the session cookie depend on. It is
@@ -22,18 +23,20 @@ services:
       # Local midnight is what the week boundary is drawn at; under UTC a
       # Sunday-evening purchase would land in the wrong week's envelope.
       PF_TIMEZONE: Europe/Oslo
-      # Set to 1 once something in front terminates TLS (tailscale serve,
-      # cloudflared) -- which, with the loopback-only binding above, is the
-      # only way anything reaches this at all in a real deployment. A
+      # Set to 1 once something in front terminates TLS -- which, with the
+      # loopback-only binding above, is the only way anything reaches this
+      # at all in a real deployment. A
       # `Secure` cookie sent over plain http:// is dropped by the browser,
       # so login silently fails to stick if this is set before that TLS
       # front-end is actually in place. Left at 0 so `docker compose up`
       # still works before either proxy is set up.
       PF_HTTPS_ONLY: "0"
       # Uncomment once an Entra app registration exists (see README
-      # "Authentication") and set it to the domain the public tunnel or
-      # tailnet hostname actually answers on.
-      # PF_PUBLIC_ORIGIN: https://finance.yourdomain.com
+      # "Authentication") and set it to the HTTPS origin the browser
+      # actually reaches -- the tailnet hostname, or the LAN hostname Caddy
+      # holds a certificate for. It must match the redirect URI registered
+      # in Entra character for character.
+      # PF_PUBLIC_ORIGIN: https://pi.your-tailnet.ts.net
     restart: unless-stopped
 
 volumes:

@@ -113,7 +113,12 @@ def _entra_from_env(env) -> EntraSettings | None:
             or origin.startswith("http://localhost")
             or origin.startswith("http://127.0.0.1")):
         raise ValueError(
-            f"PF_PUBLIC_ORIGIN must be https:// (or localhost): {origin!r}")
+            f"PF_PUBLIC_ORIGIN must be https:// (or localhost): {origin!r}."
+            " Entra refuses to register an http:// redirect URI, so a plain"
+            " LAN address like http://192.168.1.50:8000 cannot be used even"
+            " for a private deployment -- put a TLS-terminating proxy in"
+            " front and use its hostname. See README \"Hosting it"
+            " privately\".")
 
     return EntraSettings(tenant_id=present["PF_ENTRA_TENANT_ID"],
                          client_id=present["PF_ENTRA_CLIENT_ID"],
