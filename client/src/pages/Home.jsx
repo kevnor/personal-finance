@@ -1,13 +1,13 @@
 import { useState } from "react";
 import AttentionBanner from "../components/AttentionBanner.jsx";
-import RingProgress from "../components/RingProgress.jsx";
+import DayWeekRing from "../components/DayWeekRing.jsx";
 import { ErrorState, Loading } from "../components/States.jsx";
 import TransactionRow from "../components/TransactionRow.jsx";
 import WeekCard from "../components/WeekCard.jsx";
 import { useAppData } from "../context/AppData.jsx";
 import { useResource } from "../hooks/useResource.js";
 import { api } from "../lib/api.js";
-import { daysBetween, isoWeek, longDate, weekdayLabel } from "../lib/dates.js";
+import { daysBetween, isoWeek, isoWeekday, longDate, weekdayLabel } from "../lib/dates.js";
 import { nok } from "../lib/format.js";
 import { toRow, variableSpend } from "../lib/rows.js";
 
@@ -31,10 +31,10 @@ function verdict(figures) {
   if (figures.today_remaining < 0) {
     return `Dagens ramme er brukt opp — ${nok(Math.abs(figures.today_remaining), 0)} kr over, men ${nok(figures.week_remaining, 0)} kr igjen av uken.`;
   }
-  return `${nok(figures.week_remaining, 0)} kr igjen av uken, fordelt på ${figures.days_left} ${figures.days_left === 1 ? "dag" : "dager"}.`;
+  return `${nok(figures.week_remaining, 0)} kr står igjen, fordelt på ${figures.days_left} ${figures.days_left === 1 ? "dag" : "dager"}.`;
 }
 
-export default function Home({ revision, onReviewClick, onOwedClick, onUnauthorized }) {
+export default function Home({ revision, onReviewClick, onOwedClick, onHistoryClick, onUnauthorized }) {
   const [bannerDismissed, setBannerDismissed] = useState(false);
   const { labelFor } = useAppData();
 
@@ -79,8 +79,10 @@ export default function Home({ revision, onReviewClick, onOwedClick, onUnauthori
   const todayRows = (byDay.get(day) ?? []).map((tx) => toRow(tx, labelFor));
   const owedTotal = owed.reduce((sum, item) => sum + item.expected_amount, 0);
   // The allowance is fixed when the day starts, so a zero allowance means
-  // the week is spent — dividing by it would give Infinity.
-  const fraction = figures.today_allowance > 0 ? figures.today_spent / figures.today_allowance : 1;
+  // the week is spent — dividing by it would give Infinity. Same story for
+  // the envelope on the outer ring.
+  const dayFraction = figures.today_allowance > 0 ? figures.today_spent / figures.today_allowance : 1;
+  const weekFraction = figures.week_envelope > 0 ? figures.week_spent / figures.week_envelope : 1;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
@@ -96,7 +98,7 @@ export default function Home({ revision, onReviewClick, onOwedClick, onUnauthori
               marginTop: 3,
             }}
           >
-            {longDate(day)} · uke {isoWeek(day)}
+            {longDate(day)} · dag {isoWeekday(day)} av 7
           </div>
         </div>
       </div>
@@ -117,15 +119,14 @@ export default function Home({ revision, onReviewClick, onOwedClick, onUnauthori
           flexDirection: "column",
           alignItems: "center",
           gap: 2,
-          padding: "6px 0 2px",
         }}
       >
-        <RingProgress fraction={fraction} size={252} radius={104} strokeWidth={16}>
+        <DayWeekRing dayFraction={dayFraction} weekFraction={weekFraction}>
           <div className="eyebrow">igjen i dag</div>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 5, marginTop: 6 }}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 5, marginTop: 7 }}>
             <span
               className="tabular"
-              style={{ font: "500 52px/1 var(--font-heading)", letterSpacing: "-.03em" }}
+              style={{ font: "500 50px/1 var(--font-heading)", letterSpacing: "-.03em" }}
             >
               {nok(figures.today_remaining, 0)}
             </span>
@@ -133,16 +134,34 @@ export default function Home({ revision, onReviewClick, onOwedClick, onUnauthori
               kr
             </span>
           </div>
-          <div
-            style={{
-              font: "400 12px/1.4 var(--font-body)",
-              color: "var(--color-text-muted)",
-              marginTop: 9,
-            }}
-          >
+          <span className="sr-only">
             av {nok(figures.today_allowance, 0)} kr · brukt {nok(figures.today_spent, 0)} kr
+          </span>
+          <div style={{ width: 34, height: 1, background: "rgba(233,233,237,.16)", margin: "12px 0 10px" }} />
+          <div style={{ font: "400 12.5px/1.4 var(--font-body)", color: "var(--color-text-muted)" }}>
+            {nok(figures.week_remaining, 0)} kr igjen av uken
           </div>
-        </RingProgress>
+        </DayWeekRing>
+
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 16,
+            font: "400 11.5px/1 var(--font-body)",
+            color: "var(--color-text-muted)",
+          }}
+        >
+          <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ width: 18, height: 8, borderRadius: 9999, background: "var(--accent-500)", display: "inline-block" }} />
+            dagen
+          </span>
+          <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ width: 18, height: 5, borderRadius: 9999, background: "var(--accent-700)", display: "inline-block" }} />
+            uken
+          </span>
+        </div>
       </div>
 
       <div
@@ -169,17 +188,28 @@ export default function Home({ revision, onReviewClick, onOwedClick, onUnauthori
         </div>
       )}
 
-      <WeekCard
-        weekLabel={`uke ${isoWeek(day)}`}
-        remaining={figures.week_remaining}
-        envelope={figures.week_envelope}
-        rate={figures.week_envelope / 7}
-        days={days}
-      />
+      <WeekCard weekLabel={`uke ${isoWeek(day)}`} rate={figures.week_envelope / 7} days={days} />
 
       <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-        <div className="eyebrow" style={{ marginBottom: 8 }}>
-          i dag
+        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 8 }}>
+          <span className="eyebrow">i dag</span>
+          {todayRows.length > 0 && (
+            <button
+              type="button"
+              onClick={onHistoryClick}
+              style={{
+                appearance: "none",
+                background: "none",
+                border: "none",
+                padding: 0,
+                cursor: "pointer",
+                font: "400 11.5px/1 var(--font-body)",
+                color: "var(--accent-500)",
+              }}
+            >
+              alle
+            </button>
+          )}
         </div>
         {todayRows.length === 0 ? (
           <div
