@@ -35,6 +35,12 @@ export const shortDate = (isoDate) =>
 export const weekdayLabel = (isoDate) =>
   new Date(`${isoDate}T00:00:00`).toLocaleDateString(NB, { weekday: "short" }).replace(".", "");
 
+/** 1 (Monday) through 7 (Sunday) — the "dag 4 av 7" position within the week. */
+export function isoWeekday(isoDate) {
+  const day = new Date(`${isoDate}T00:00:00`).getDay();
+  return day === 0 ? 7 : day;
+}
+
 /** ISO week number, which is what the Norwegian "uke 35" refers to. */
 export function isoWeek(isoDate) {
   const date = new Date(`${isoDate}T00:00:00Z`);

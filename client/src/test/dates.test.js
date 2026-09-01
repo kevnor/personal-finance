@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addDays, daysBetween, isoWeek, weekdayLabel } from "../lib/dates.js";
+import { addDays, daysBetween, isoWeek, isoWeekday, weekdayLabel } from "../lib/dates.js";
 
 describe("addDays", () => {
   it("crosses a month boundary", () => {
@@ -46,5 +46,13 @@ describe("weekdayLabel", () => {
   it("is a short Norwegian weekday without the abbreviation dot", () => {
     expect(weekdayLabel("2026-08-24")).toBe("man");
     expect(weekdayLabel("2026-08-30")).toBe("søn");
+  });
+});
+
+describe("isoWeekday", () => {
+  it("is 1 on Monday and 7 on Sunday, not 0", () => {
+    expect(isoWeekday("2026-08-24")).toBe(1);
+    expect(isoWeekday("2026-08-27")).toBe(4);
+    expect(isoWeekday("2026-08-30")).toBe(7);
   });
 });

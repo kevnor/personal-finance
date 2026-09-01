@@ -153,6 +153,7 @@ function SignedIn({ revision, onChanged, onSignedOut }) {
         {...shared}
         onReviewClick={() => setTab("review")}
         onOwedClick={() => setTab("owed")}
+        onHistoryClick={() => setTab("history")}
       />
     );
   }
