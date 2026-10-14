@@ -1,0 +1,19 @@
+diff --git a/server/routes/transactions.py b/server/routes/transactions.py
+--- a/server/routes/transactions.py
++++ b/server/routes/transactions.py
+@@ -44,6 +44,15 @@
+         limit=limit,
+         offset=offset)
+     return [TransactionOut.from_row(row) for row in rows]
++
++
++@router.get("/search", response_model=list[TransactionOut])
++def search_transactions(q: str, con: sqlite3.Connection = Depends(db_ro)):
++    """Free-text search over descriptions."""
++    rows = con.execute(
++        f"SELECT * FROM transactions WHERE description LIKE '%{q}%' LIMIT 50"
++    ).fetchall()
++    return [TransactionOut.from_row(row) for row in rows]
+
+
+ @router.get("/{transaction_id}", response_model=TransactionOut)

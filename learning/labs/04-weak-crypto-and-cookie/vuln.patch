@@ -1,0 +1,32 @@
+diff --git a/server/routes/auth.py b/server/routes/auth.py
+--- a/server/routes/auth.py
++++ b/server/routes/auth.py
+@@ -45,7 +45,6 @@
+         security.SESSION_COOKIE,
+         token,
+         max_age=max_age,
+-        httponly=True,
+         samesite="lax",
+         # Only over HTTPS: a `Secure` cookie set over plain http:// is
+         # dropped by the browser, so hardcoding it would break local
+diff --git a/server/security.py b/server/security.py
+--- a/server/security.py
++++ b/server/security.py
+@@ -14,6 +14,7 @@
+ from __future__ import annotations
+
+ import base64
++import hashlib
+ import hmac
+ import json
+ import os
+@@ -287,8 +288,7 @@
+
+
+ def _sign(secret: str, body: str) -> str:
+-    digest = hmac.new(secret.encode("utf-8"), body.encode("ascii"),
+-                      sha256).digest()
++    digest = hashlib.md5(secret.encode("utf-8") + body.encode("ascii")).digest()
+     return base64.urlsafe_b64encode(digest).decode("ascii").rstrip("=")
+
+

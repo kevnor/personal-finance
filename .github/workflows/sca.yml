@@ -1,0 +1,55 @@
+name: sca
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "17 5 * * 1"   # Mondays 05:17 UTC; new CVEs land without any code change
+
+permissions:
+  contents: read
+
+jobs:
+  pip-audit:
+    name: pip-audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pip-audit
+      - name: Audit the project's declared dependencies
+        continue-on-error: true  # report-only
+        # pyproject.toml has version floors and no lockfile, so this resolves
+        # to the newest allowed versions on the day it runs.
+        run: pip-audit .
+
+  npm-audit:
+    name: npm-audit
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: client
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: npm ci
+      - name: Audit
+        continue-on-error: true  # report-only
+        run: npm audit --audit-level=high
+
+  dependency-review:
+    name: dependency-review
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/dependency-review-action@v4
+        continue-on-error: true  # report-only
+        with:
+          fail-on-severity: high
+          comment-summary-in-pr: never
