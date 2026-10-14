@@ -144,11 +144,17 @@ class PasscodeStore:
         # mid-write cannot leave a truncated credentials file -- which would
         # lock the user out with no way back except deleting it.
         temporary = self.path.with_suffix(".tmp")
-        temporary.write_text(json.dumps({
-            "passcode_hash": credentials.passcode_hash,
-            "session_secret": credentials.session_secret,
-        }, indent=2), encoding="utf-8")
-        os.chmod(temporary, 0o600)
+        # Created private from the first byte. write_text() followed by chmod()
+        # leaves a moment where the signing secret is readable under the
+        # default umask. fchmod covers a leftover .tmp from a crashed write,
+        # since O_CREAT's mode does not apply to a file that already exists.
+        fd = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            os.fchmod(handle.fileno(), 0o600)
+            json.dump({
+                "passcode_hash": credentials.passcode_hash,
+                "session_secret": credentials.session_secret,
+            }, handle, indent=2)
         temporary.replace(self.path)
         return credentials
 
