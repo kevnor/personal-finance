@@ -3,7 +3,7 @@
 # splitting the client behind a second image would buy CORS and a compose
 # network for no benefit at one user.
 
-FROM node:20-alpine AS client
+FROM node:26-alpine AS client
 WORKDIR /build
 COPY client/package.json client/package-lock.json ./
 RUN npm ci
