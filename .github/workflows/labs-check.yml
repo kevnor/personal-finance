@@ -13,6 +13,6 @@ jobs:
     name: labs-check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Every lab patch still applies to this tree
         run: bash learning/labs/lab.sh check
