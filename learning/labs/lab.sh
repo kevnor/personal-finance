@@ -24,7 +24,17 @@ case "${1:-}" in
     status=0
     for patch in "$labs"/*/vuln.patch; do
       [ -e "$patch" ] || continue
-      if git apply --check "$patch"; then echo "ok   $patch"; else echo "FAIL $patch"; status=1; fi
+      if git apply --check "$patch" 2>/dev/null; then
+        echo "ok   $patch"
+      elif git apply --check --reverse "$patch" 2>/dev/null; then
+        # On a lab branch the lab's own patch is already applied; that is the
+        # point of the branch, not a stale patch.
+        echo "ok   $patch (already applied: this is its lab branch)"
+      else
+        echo "FAIL $patch"
+        git apply --check "$patch" || true
+        status=1
+      fi
     done
     exit "$status"
     ;;
