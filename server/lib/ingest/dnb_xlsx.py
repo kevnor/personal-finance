@@ -12,6 +12,10 @@ import re
 import zipfile
 from dataclasses import dataclass
 from pathlib import Path
+# Stdlib ElementTree on purpose: the CLI is pure stdlib (see README), and
+# defusedxml would break that. It does not resolve external entities; the input
+# is the owner's own statement exports, and an upload needs a session.
+# nosemgrep: python.lang.security.use-defused-xml.use-defused-xml
 from xml.etree import ElementTree as ET
 
 from server.lib.ingest import RawRow
