@@ -30,7 +30,7 @@ dependencies = [
     # which ships wheels for the platforms the Dockerfile targets, so this
     # still needs no build toolchain. The HTTP calls use urllib rather than
     # adding a client: there are two of them.
-    "pyjwt[crypto]>=2.7",
+    "pyjwt[crypto]>=2.15.1",
 ]
 
 [tool.setuptools]
