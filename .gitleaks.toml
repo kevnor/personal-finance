@@ -3,8 +3,9 @@
 useDefault = true
 
 [allowlist]
-description = "Lab patches and READMEs carry deliberately fake secrets so the labs can demonstrate detection. The same strings in any other path still fail the scan."
+description = "Lab patches, lab READMEs and the implementation plan that quotes them carry deliberately fake secrets so the labs can demonstrate detection. The same strings in any other path still fail the scan."
 paths = [
   '''learning/labs/.*\.patch''',
   '''learning/labs/.*/(README|solution)\.md''',
+  '''docs/superpowers/plans/.*\.md''',
 ]
