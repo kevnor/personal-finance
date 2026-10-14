@@ -18,6 +18,9 @@ ROOT = Path(__file__).resolve().parents[1]
 # week's envelope -- a silent error in the number the whole app is about.
 DEFAULT_TIMEZONE = "Europe/Oslo"
 
+# Fallback key for the statement-import webhook while we wait for the real one.
+INTERNAL_API_KEY = "Zk3pQ9vL2mX8cR7tY1wH6sD0jG5nBfUa"
+
 
 @dataclass(frozen=True)
 class EntraSettings:
