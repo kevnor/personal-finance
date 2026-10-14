@@ -49,6 +49,18 @@ FLOW_TTL_SECONDS = 10 * 60
 NETWORK_TIMEOUT_SECONDS = 10
 
 
+def _is_allowed_url(url: str) -> bool:
+    """https anywhere, or plain http to localhost only.
+
+    The host is parsed rather than prefix-matched: `http://localhost.evil.example`
+    starts with `http://localhost` and is not localhost.
+    """
+    parsed = urllib.parse.urlparse(url)
+    if parsed.scheme == "https":
+        return True
+    return parsed.scheme == "http" and parsed.hostname in {"localhost", "127.0.0.1"}
+
+
 class EntraError(RuntimeError):
     """Sign-in could not be completed.
 
@@ -210,6 +222,13 @@ class Client:
                      "Accept": "application/json"}))
 
     def _request(self, request: urllib.request.Request) -> dict:
+        # urlopen also speaks file:// and ftp://. The URLs here come from the
+        # tenant id and Microsoft's discovery document, so a tampered document
+        # would otherwise be able to point this at a local file.
+        if not _is_allowed_url(request.full_url):
+            raise EntraError(
+                f"refusing to call {request.full_url!r}:"
+                " only https:// (or localhost) URLs are allowed")
         try:
             with urllib.request.urlopen(
                     request, timeout=NETWORK_TIMEOUT_SECONDS) as response:

@@ -196,10 +196,15 @@ def _safe_next(candidate: str | None) -> str:
     would make this endpoint an open redirect -- and an open redirect on a
     login route is a phishing primitive, because the victim really is signing
     in to the real app before being sent on. `//host` is rejected too: it is
-    protocol-relative, so browsers read it as another origin.
+    protocol-relative, so browsers read it as another origin. So is `/\\host`,
+    because browsers treat a backslash as a slash, and a tab or newline inside
+    the path is stripped by the URL parser, turning `/<tab>/host` into `//host`.
     """
     if (not candidate or not candidate.startswith("/")
-            or candidate.startswith("//")):
+            or candidate.startswith("//")
+            or "\\" in candidate
+            or any(ord(char) < 0x20 or ord(char) == 0x7F
+                   for char in candidate)):
         return "/"
     return candidate
 
