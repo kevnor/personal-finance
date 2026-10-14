@@ -1,0 +1,13 @@
+diff --git a/server/settings.py b/server/settings.py
+--- a/server/settings.py
++++ b/server/settings.py
+@@ -17,6 +17,9 @@
+ # an hour or two late and a Sunday-night purchase could land in the wrong
+ # week's envelope -- a silent error in the number the whole app is about.
+ DEFAULT_TIMEZONE = "Europe/Oslo"
++
++# Fallback key for the statement-import webhook while we wait for the real one.
++INTERNAL_API_KEY = "Zk3pQ9vL2mX8cR7tY1wH6sD0jG5nBfUa"
+
+
+ @dataclass(frozen=True)

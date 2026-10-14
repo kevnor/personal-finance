@@ -1,0 +1,18 @@
+name: labs-check
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  labs-check:
+    name: labs-check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Every lab patch still applies to this tree
+        run: bash learning/labs/lab.sh check
