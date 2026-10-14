@@ -1,0 +1,12 @@
+diff --git a/pyproject.toml b/pyproject.toml
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -30,7 +30,7 @@
+     # which ships wheels for the platforms the Dockerfile targets, so this
+     # still needs no build toolchain. The HTTP calls use urllib rather than
+     # adding a client: there are two of them.
+-    "pyjwt[crypto]>=2.7",
++    "pyjwt[crypto]==2.3.0",
+ ]
+
+ [tool.setuptools]
