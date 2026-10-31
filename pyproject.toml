@@ -48,7 +48,7 @@ packages = [
 # pytest was required to run the suite but declared nowhere, so "install the
 # project, run the tests" did not work from a clean checkout.
 dev = [
-    "pytest>=9.1.1",
+    "pytest>=9.2.0",
     "httpx>=0.28.1",               # required by fastapi.testclient
 ]
 
