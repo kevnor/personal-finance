@@ -11,7 +11,7 @@ COPY client/ ./
 RUN npm run build
 
 
-FROM python:3.14-slim AS runtime
+FROM python:3.15-slim AS runtime
 
 # uvloop and httptools come from uvicorn[standard]; argon2-cffi needs no
 # compiler on a wheel-provided platform, so no build toolchain is installed.
