@@ -17,7 +17,7 @@ requires-python = ">=3.11"
 # dependency optional in the other direction; `python3 -m server.cli` simply
 # works on a checkout with nothing installed.
 dependencies = [
-    "fastapi>=0.143.0",
+    "fastapi>=0.162.0",
     "uvicorn[standard]>=0.54.0",
     "argon2-cffi>=25.1.0",
     "python-multipart>=0.0.32",   # statement upload is multipart/form-data
