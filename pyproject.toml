@@ -20,7 +20,7 @@ dependencies = [
     "fastapi>=0.143.0",
     "uvicorn[standard]>=0.54.0",
     "argon2-cffi>=25.1.0",
-    "python-multipart>=0.0.32",   # statement upload is multipart/form-data
+    "python-multipart>=0.0.33",   # statement upload is multipart/form-data
     # Entra sign-in. Only the ID token's signature needs verifying, and the
     # authorization-code flow would technically permit skipping even that --
     # the token arrives over this process's own TLS connection to Microsoft.
